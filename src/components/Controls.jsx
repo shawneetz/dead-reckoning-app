@@ -1,3 +1,5 @@
+import { exportGeoJSON, captureScreenshot } from "../utils/export";
+
 export default function Controls({
   isPlaying,
   canUndo,
@@ -11,6 +13,8 @@ export default function Controls({
   onRedo,
   onLoadPreset,
 }) {
+  const hasSteps = steps.length > 0 && origin;
+
   return (
     <div className="flex flex-col gap-2 p-3 border-t border-gray-200">
       <div className="flex gap-1">
@@ -34,7 +38,7 @@ export default function Controls({
         {!isPlaying ? (
           <button
             onClick={onPlay}
-            disabled={!steps.length}
+            disabled={!hasSteps}
             className="flex-1 text-xs bg-green-600 text-white rounded px-2 py-1 disabled:opacity-30 hover:bg-green-700"
           >
             ▶ Play
@@ -69,6 +73,23 @@ export default function Controls({
           Bataan Death March Segment
         </option>
       </select>
+
+      <div className="flex gap-1">
+        <button
+          onClick={() => exportGeoJSON(steps, origin)}
+          disabled={!hasSteps}
+          className="flex-1 text-xs border border-blue-300 text-blue-600 rounded px-2 py-1 disabled:opacity-30 hover:bg-blue-50"
+        >
+          ⬇ GeoJSON
+        </button>
+        <button
+          onClick={captureScreenshot}
+          disabled={!hasSteps}
+          className="flex-1 text-xs border border-gray-300 text-gray-600 rounded px-2 py-1 disabled:opacity-30 hover:bg-gray-50"
+        >
+          📷 Screenshot
+        </button>
+      </div>
     </div>
   );
 }
