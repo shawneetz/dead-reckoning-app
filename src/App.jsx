@@ -58,8 +58,11 @@ export default function App() {
 
   function handlePlay() {
     if (!steps.length) return;
-    setPlayIndex(0);
+    // If we're resuming (playIndex is mid-way), don't reset to 0
+    const startIndex = playIndex >= steps.length ? 0 : playIndex;
+    setPlayIndex(startIndex);
     setIsPlaying(true);
+    clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setPlayIndex((i) => {
         if (i >= steps.length) {
@@ -128,6 +131,7 @@ export default function App() {
           canRedo={canRedo}
           steps={steps}
           origin={origin}
+          playIndex={playIndex}
           onPlay={handlePlay}
           onPause={handlePause}
           onReset={resetAll}
@@ -144,7 +148,8 @@ export default function App() {
           origin={origin}
           playIndex={isPlaying ? playIndex : steps.length}
           onMapClick={handleMapClick}
-        />
+          isPlaying={isPlaying}
+        />{" "}
         <StatsPanel steps={steps} origin={origin} />
       </div>
     </div>

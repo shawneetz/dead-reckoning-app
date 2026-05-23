@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -6,6 +6,7 @@ import {
   CircleMarker,
   LayersControl,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
 import { buildCoords } from "../utils/deadReckoning";
 import { stepColor } from "../utils/colors";
@@ -19,20 +20,32 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-export default function MapView({ steps, origin, playIndex, onMapClick }) {
-  const visibleSteps = steps.slice(
-    0,
-    playIndex !== undefined ? playIndex : steps.length,
-  );
+function FlyToStep({ coord, isPlaying }) {
+  const map = useMap();
+  useEffect(() => {
+    if (isPlaying && coord) {
+      map.panTo(coord, { animate: true, duration: 0.5 });
+    }
+  }, [coord]);
+  return null;
+}
 
-  const coords = useMemo(
-    () => buildCoords(visibleSteps, origin),
-    [visibleSteps, origin],
-  );
+export default function MapView({
+  steps,
+  origin,
+  playIndex,
+  onMapClick,
+  isPlaying,
+}) {
+  const visibleCount = playIndex !== undefined ? playIndex : steps.length;
 
   const allCoords = useMemo(() => buildCoords(steps, origin), [steps, origin]);
 
-  const finalCoord = coords.length > 0 ? coords[coords.length - 1] : null;
+  const visibleCoords = allCoords.slice(0, visibleCount + 1);
+  const visibleStepCount = visibleCoords.length - 1;
+
+  const finalCoord =
+    visibleCoords.length > 0 ? visibleCoords[visibleCoords.length - 1] : null;
   const trueFinal =
     allCoords.length > 0 ? allCoords[allCoords.length - 1] : null;
 
@@ -43,6 +56,8 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
       style={{ height: "100%", width: "100%" }}
     >
       <MapClickHandler onMapClick={onMapClick} />
+      <FlyToStep coord={finalCoord} isPlaying={isPlaying} />
+
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="OpenStreetMap">
           <TileLayer
@@ -58,12 +73,13 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
           />
         </LayersControl.BaseLayer>
       </LayersControl>
+
       {origin &&
-        coords.length > 1 &&
-        visibleSteps.map((step, i) => {
-          const from = coords[i];
-          const to = coords[i + 1];
-          const color = stepColor(i, visibleSteps.length);
+        visibleCoords.length > 1 &&
+        Array.from({ length: visibleStepCount }).map((_, i) => {
+          const from = visibleCoords[i];
+          const to = visibleCoords[i + 1];
+          const color = stepColor(i, visibleStepCount);
           return (
             <Polyline
               key={i}
@@ -72,11 +88,12 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
             />
           );
         })}
+
       {origin &&
-        coords.length > 1 &&
-        visibleSteps.map((step, i) => {
-          const to = coords[i + 1];
-          const color = stepColor(i, visibleSteps.length);
+        visibleCoords.length > 1 &&
+        Array.from({ length: visibleStepCount }).map((_, i) => {
+          const to = visibleCoords[i + 1];
+          const color = stepColor(i, visibleStepCount);
           return (
             <CircleMarker
               key={`dot-${i}`}
@@ -91,6 +108,7 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
             />
           );
         })}
+
       {origin && trueFinal && (
         <Polyline
           key={steps.length}
@@ -98,6 +116,7 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
           pathOptions={{ color: "red", weight: 2, dashArray: "6 4" }}
         />
       )}
+
       {origin && (
         <CircleMarker
           center={origin}
@@ -110,7 +129,8 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
           }}
         />
       )}
-      {finalCoord && coords.length > 1 && (
+
+      {finalCoord && visibleCoords.length > 1 && (
         <CircleMarker
           center={finalCoord}
           radius={8}
@@ -121,7 +141,7 @@ export default function MapView({ steps, origin, playIndex, onMapClick }) {
             weight: 2,
           }}
         />
-      )}{" "}
+      )}
     </MapContainer>
   );
 }

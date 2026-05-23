@@ -6,6 +6,7 @@ export default function Controls({
   canRedo,
   steps,
   origin,
+  playIndex,
   onPlay,
   onPause,
   onReset,
@@ -14,6 +15,7 @@ export default function Controls({
   onLoadPreset,
 }) {
   const hasSteps = steps.length > 0 && origin;
+  const isResume = playIndex > 0 && playIndex < steps.length;
 
   return (
     <div className="flex flex-col gap-2 p-3 border-t border-gray-200">
@@ -41,7 +43,7 @@ export default function Controls({
             disabled={!hasSteps}
             className="flex-1 text-xs bg-green-600 text-white rounded px-2 py-1 disabled:opacity-30 hover:bg-green-700"
           >
-            ▶ Play
+            {isResume ? "▶ Resume" : "▶ Play"}
           </button>
         ) : (
           <button
