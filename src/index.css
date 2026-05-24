@@ -1,1 +1,118 @@
 @import "tailwindcss";
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap");
+
+:root {
+  --ink: #2c1810;
+  --mahogany: #5c3a1e;
+  --forest: #1a2410;
+  --moss: #3d5a2e;
+  --gold: #8b6914;
+  --brass: #c4a35a;
+  --ochre: #7a6b3c;
+  --leather: #b8986a;
+  --taupe: #aa9e8b;
+  --sage: #b9b7a0;
+  --sand: #d8c5a7;
+  --coolstone: #c9c3b7;
+  --blush: #dfc1a9;
+  --parchment: #e8d5a3;
+  --mapfade: #d4c4a0;
+  --cream: #f5edd6;
+  --linen: #f0e8d0;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--linen);
+  color: var(--ink);
+  font-family: "EB Garamond", Garamond, serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Inputs — global spec */
+input,
+textarea,
+select {
+  font-family: "EB Garamond", serif;
+  font-size: 15px;
+  background: var(--mapfade);
+  border: 1.5px solid var(--taupe);
+  color: var(--ink);
+  padding: 8px 12px;
+  box-shadow: inset 1px 1px 0px var(--coolstone);
+  outline: none;
+  width: 100%;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--mahogany);
+  box-shadow:
+    inset 1px 1px 0px var(--sage),
+    0 0 0 2px #c4a35a44;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--taupe);
+  font-style: italic;
+}
+
+select option {
+  background: var(--linen);
+  color: var(--ink);
+}
+
+/* Scrollbar — parchment themed */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--mapfade);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--leather);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mahogany);
+}
+
+/* Leaflet popup — parchment theme */
+.leaflet-popup-content-wrapper {
+  background: var(--cream) !important;
+  border: 2px solid var(--mahogany) !important;
+  box-shadow: 4px 4px 0px var(--ink) !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 16px !important;
+  font-family: "EB Garamond", Garamond, serif !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--mahogany) !important;
+}
+
+.leaflet-popup-close-button {
+  font-family: "Cinzel", serif !important;
+  color: var(--taupe) !important;
+  font-size: 14px !important;
+  padding: 6px 8px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: var(--ink) !important;
+  background: transparent !important;
+}

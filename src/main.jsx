@@ -1,8 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 import App from "./App.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 import L from "leaflet";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
@@ -14,6 +16,10 @@ L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>,
 );

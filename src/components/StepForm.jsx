@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { parseBearing } from "../utils/deadReckoning";
+import PinPicker from "./PinPicker";
 
 export default function StepForm({ onAddStep, disabled }) {
   const [bearing, setBearing] = useState("");
   const [distance, setDistance] = useState("");
   const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState("");
+  const [pinIcon, setPinIcon] = useState(null);
   const [error, setError] = useState(null);
 
   function handleAdd() {
@@ -18,51 +22,196 @@ export default function StepForm({ onAddStep, disabled }) {
       setError("Distance must be between 1 and 50000 metres");
       return;
     }
+    const dur = duration ? parseInt(duration, 10) : 0;
     setError(null);
-    onAddStep({ bearing: b, distance: d, label });
+    onAddStep({
+      bearing: b,
+      distance: d,
+      label,
+      description,
+      duration: dur > 0 ? dur : 0,
+      pinIcon,
+    });
     setBearing("");
     setDistance("");
     setLabel("");
+    setDescription("");
+    setDuration("");
+    setPinIcon(null);
   }
 
   return (
-    <div className="flex flex-col gap-2 p-3 border-b border-gray-200">
-      <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">
-        Add Step
-      </h2>
-      <input
-        type="text"
-        placeholder="Direction: 90 or NE"
-        value={bearing}
-        onChange={(e) => setBearing(e.target.value)}
-        disabled={disabled}
-        className="border rounded px-2 py-1 text-sm disabled:opacity-50"
-      />
-      <input
-        type="number"
-        placeholder="Distance (metres)"
-        min="1"
-        value={distance}
-        onChange={(e) => setDistance(e.target.value)}
-        disabled={disabled}
-        className="border rounded px-2 py-1 text-sm disabled:opacity-50"
-      />
-      <input
-        type="text"
-        placeholder="Label (optional)"
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        disabled={disabled}
-        className="border rounded px-2 py-1 text-sm disabled:opacity-50"
-      />
+    <div
+      className="flex flex-col gap-3 px-4 py-3"
+      style={{ borderBottom: "2px solid var(--mahogany)" }}
+    >
+      <p
+        style={{
+          fontFamily: "Cinzel, serif",
+          fontSize: 9,
+          letterSpacing: "0.25em",
+          color: "var(--ochre)",
+        }}
+        className="uppercase"
+      >
+        Plot Step
+      </p>
+
+      {/* Bearing + Distance side by side */}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: 8,
+              letterSpacing: "0.18em",
+              color: "var(--ochre)",
+            }}
+            className="uppercase block mb-1"
+          >
+            Bearing
+          </label>
+          <input
+            type="text"
+            placeholder="90 or NE"
+            value={bearing}
+            onChange={(e) => setBearing(e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+        <div className="flex-1">
+          <label
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: 8,
+              letterSpacing: "0.18em",
+              color: "var(--ochre)",
+            }}
+            className="uppercase block mb-1"
+          >
+            Distance (m)
+          </label>
+          <input
+            type="number"
+            placeholder="metres"
+            min="1"
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label
+          style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: 8,
+            letterSpacing: "0.18em",
+            color: "var(--ochre)",
+          }}
+          className="uppercase block mb-1"
+        >
+          Label
+        </label>
+        <input
+          type="text"
+          placeholder="Short name for this step"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          disabled={disabled}
+        />
+      </div>
+
+      <div>
+        <label
+          style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: 8,
+            letterSpacing: "0.18em",
+            color: "var(--ochre)",
+          }}
+          className="uppercase block mb-1"
+        >
+          Description
+        </label>
+        <textarea
+          placeholder="Context shown in popup during playback (optional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          disabled={disabled}
+          rows={2}
+          style={{ resize: "none", fontSize: 13 }}
+        />
+      </div>
+
+      {/* Duration — only shown when description is filled */}
+      {description.trim() && (
+        <div>
+          <label
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: 8,
+              letterSpacing: "0.18em",
+              color: "var(--ochre)",
+            }}
+            className="uppercase block mb-1"
+          >
+            Auto-close (seconds, 0 = manual)
+          </label>
+          <input
+            type="number"
+            placeholder="0"
+            min="0"
+            max="60"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+      )}
+
+      <div>
+        <label
+          style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: 8,
+            letterSpacing: "0.18em",
+            color: "var(--ochre)",
+          }}
+          className="uppercase block mb-1"
+        >
+          Pin Style
+        </label>
+        <PinPicker value={pinIcon} onChange={setPinIcon} disabled={disabled} />
+      </div>
+
       <button
         onClick={handleAdd}
         disabled={disabled}
-        className="bg-blue-600 text-white rounded px-3 py-1 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+        className="btn-stamp py-2.5"
+        style={{
+          background: "var(--mahogany)",
+          border: "2px solid var(--ink)",
+          color: "var(--parchment)",
+          boxShadow: "3px 3px 0px var(--ink)",
+        }}
       >
-        Add Step
+        + Add Step
       </button>
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+
+      {error && (
+        <p
+          style={{
+            color: "#7A1A1A",
+            fontFamily: "EB Garamond, serif",
+            fontSize: 12,
+            fontStyle: "italic",
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }
