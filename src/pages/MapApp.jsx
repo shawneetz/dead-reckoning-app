@@ -44,6 +44,13 @@ export default function MapApp() {
   const timerStartRef = useRef(null);
   const timerDurationRef = useRef(0);
   const intervalRef = useRef(null);
+  const isResettingRef = useRef(false); // guards all async callbacks against post-reset firing
+  const stepsRef = useRef(steps); // keeps interval closure in sync with latest steps
+
+  // Keep stepsRef current
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   const stats = calcStats(steps, origin);
   const {
@@ -103,7 +110,10 @@ export default function MapApp() {
     setSteps(next);
     setRedoStack((r) => r.slice(0, -1));
   }
+
   function resetAll() {
+    // Set flag FIRST — all in-flight callbacks check this before touching state
+    isResettingRef.current = true;
     clearInterval(intervalRef.current);
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
@@ -119,6 +129,10 @@ export default function MapApp() {
     setActiveModalIndex(null);
     setPausedByUser(false);
     setTimerRemaining(null);
+    // Clear flag after React flushes all state updates
+    setTimeout(() => {
+      isResettingRef.current = false;
+    }, 0);
   }
 
   function startAutoTimer(seconds, onComplete) {
@@ -127,12 +141,19 @@ export default function MapApp() {
     timerDurationRef.current = seconds;
     timerStartRef.current = Date.now();
     setTimerRemaining(seconds);
+
     timerTickRef.current = setInterval(() => {
+      if (isResettingRef.current) {
+        clearInterval(timerTickRef.current);
+        return;
+      }
       const elapsed = (Date.now() - timerStartRef.current) / 1000;
       const remaining = Math.max(0, seconds - elapsed);
       setTimerRemaining(parseFloat(remaining.toFixed(1)));
     }, 100);
+
     autoResumeRef.current = setTimeout(() => {
+      if (isResettingRef.current) return; // bail if reset fired during countdown
       clearInterval(timerTickRef.current);
       setTimerRemaining(null);
       onComplete();
@@ -149,16 +170,18 @@ export default function MapApp() {
   }
 
   function openStepPopup(stepIndex, { keepPlaying = false } = {}) {
+    if (isResettingRef.current) return; // bail if reset fired
     const step =
       stepIndex === -1
         ? { ...originMeta, bearing: null, distance: null }
-        : steps[stepIndex];
+        : stepsRef.current[stepIndex]; // use ref, not stale closure
     if (!step) return;
     setActiveModalIndex(stepIndex);
     if (step.duration > 0) {
       setIsPlaying(true);
       setPausedByUser(false);
       startAutoTimer(step.duration, () => {
+        if (isResettingRef.current) return;
         setActiveModalIndex(null);
         setTimerRemaining(null);
         startInterval(stepIndex === -1 ? 0 : stepIndex + 1);
@@ -170,18 +193,26 @@ export default function MapApp() {
   }
 
   function startInterval(fromIndex) {
+    if (isResettingRef.current) return; // bail if reset fired
+    isResettingRef.current = false; // ensure clean state for fresh playback
     clearInterval(intervalRef.current);
     setIsPlaying(true);
     setPausedByUser(false);
     intervalRef.current = setInterval(() => {
+      if (isResettingRef.current) {
+        // bail on any mid-tick reset
+        clearInterval(intervalRef.current);
+        return;
+      }
       setPlayIndex((i) => {
         const next = i + 1;
-        if (next > steps.length) {
+        const currentSteps = stepsRef.current; // always read latest steps
+        if (next > currentSteps.length) {
           clearInterval(intervalRef.current);
           setIsPlaying(false);
-          return steps.length;
+          return currentSteps.length;
         }
-        const arrivedStep = steps[next - 1];
+        const arrivedStep = currentSteps[next - 1];
         if (arrivedStep?.description || arrivedStep?.imageUrl) {
           clearInterval(intervalRef.current);
           openStepPopup(next - 1, { keepPlaying: true });
@@ -223,12 +254,14 @@ export default function MapApp() {
   }
 
   function handleResume() {
+    if (isResettingRef.current) return;
     if (activeModalIndex !== null && timerRemaining !== null) {
       const remaining = timerRemaining;
       const stepIndex = activeModalIndex;
       setIsPlaying(true);
       setPausedByUser(false);
       startAutoTimer(remaining, () => {
+        if (isResettingRef.current) return;
         setActiveModalIndex(null);
         setTimerRemaining(null);
         startInterval(stepIndex === -1 ? 0 : stepIndex + 1);
@@ -280,7 +313,7 @@ export default function MapApp() {
       setPausedByUser(false);
       setTimerRemaining(null);
     },
-    [steps, isPlaying, pausedByUser],
+    [isPlaying, pausedByUser],
   );
 
   const handleOriginClick = useCallback(() => {
@@ -361,10 +394,7 @@ export default function MapApp() {
               <img
                 src={BalangayIcon}
                 alt=""
-                style={{
-                  width: 20,
-                  height: 20,
-                }}
+                style={{ width: 20, height: 20 }}
               />
               Balangay
             </Link>
