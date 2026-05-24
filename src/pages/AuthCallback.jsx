@@ -6,20 +6,21 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // onAuthStateChange fires reliably after Supabase processes the OAuth code
+    // Handle hash-based token (Supabase implicit flow fallback)
+    // This fires when Supabase redirects to /#access_token=...
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/app", { replace: true });
+        return;
+      }
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         navigate("/app", { replace: true });
-      } else if (event === "SIGNED_OUT" || !session) {
-        navigate("/auth", { replace: true });
       }
-    });
-
-    // Fallback — if session already exists when page mounts
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/app", { replace: true });
     });
 
     return () => subscription.unsubscribe();
