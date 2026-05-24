@@ -41,7 +41,7 @@ export default function AuthCallback() {
           }}
           className="uppercase mb-2"
         >
-          ⚓ Balangay
+          Balangay
         </p>
         <p
           style={{
