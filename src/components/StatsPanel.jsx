@@ -4,54 +4,107 @@ import { calcStats } from "../utils/deadReckoning";
 export default function StatsPanel({ steps, origin }) {
   const stats = useMemo(() => calcStats(steps, origin), [steps, origin]);
 
-  if (!steps.length || !origin) {
-    return (
-      <div className="absolute bottom-4 left-4 z-1000 bg-white rounded-xl shadow-lg p-3 text-xs text-gray-400 italic">
-        Add steps to see navigation stats
-      </div>
-    );
-  }
+  if (!steps.length || !origin) return null;
 
   const drift = parseFloat(stats.driftPct);
   const driftColor =
-    drift < 10
-      ? "bg-green-100 text-green-700"
-      : drift <= 40
-        ? "bg-amber-100 text-amber-700"
-        : "bg-red-100 text-red-700";
+    drift < 10 ? "var(--moss)" : drift <= 40 ? "var(--gold)" : "#7A1A1A";
 
   return (
-    <div className="absolute bottom-4 left-4 z-1000 bg-white rounded-xl shadow-lg p-4 w-56 opacity-95">
-      <div className={`rounded-lg px-3 py-2 mb-3 text-center ${driftColor}`}>
-        <div className="text-3xl font-bold">{stats.driftPct}%</div>
-        <div className="text-xs font-semibold uppercase tracking-wide">
-          Drift from straight line
+    <div
+      className="absolute z-1000"
+      style={{
+        bottom: 28,
+        left: 16,
+        width: 210,
+        background: "var(--cream)",
+        border: "2px solid var(--mahogany)",
+        boxShadow: "4px 4px 0px var(--ink)",
+        opacity: 0.96,
+      }}
+    >
+      {/* Drift block */}
+      <div
+        className="px-4 py-3 text-center"
+        style={{
+          background: "var(--parchment)",
+          borderBottom: "3px double var(--leather)",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "EB Garamond, serif",
+            fontSize: 34,
+            fontWeight: 500,
+            color: driftColor,
+            lineHeight: 1,
+          }}
+        >
+          {stats.driftPct}%
+        </div>
+        <div
+          style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: 7,
+            letterSpacing: "0.25em",
+            color: "var(--taupe)",
+            marginTop: 4,
+          }}
+          className="uppercase"
+        >
+          Drift
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 text-xs text-gray-600">
-        <div className="flex justify-between">
-          <span>Distance walked</span>
-          <span className="font-semibold">
-            {stats.totalWalked.toLocaleString()}m
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Displacement</span>
-          <span className="font-semibold">
-            {stats.displacement.toLocaleString()}m
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Direction from start</span>
-          <span className="font-semibold">{stats.bearing}°</span>
-        </div>
+      {/* Stats rows */}
+      <div className="px-4 py-3 flex flex-col gap-1.5">
+        {[
+          ["Walked", `${stats.totalWalked.toLocaleString()}m`],
+          ["Displacement", `${stats.displacement.toLocaleString()}m`],
+          ["Direction", `${stats.bearing}°`],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between items-baseline">
+            <span
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 13,
+                color: "var(--taupe)",
+              }}
+            >
+              {label}
+            </span>
+            <span
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 14,
+                fontWeight: 500,
+                color: "var(--ink)",
+              }}
+            >
+              {value}
+            </span>
+          </div>
+        ))}
       </div>
 
-      <p className="mt-3 text-xs text-gray-400 leading-tight">
-        Walked {stats.totalWalked.toLocaleString()}m but only moved{" "}
-        {stats.displacement.toLocaleString()}m — {stats.driftPct}% drift
-      </p>
+      {/* Footnote */}
+      <div
+        style={{ borderTop: "1px solid var(--coolstone)" }}
+        className="px-4 py-2"
+      >
+        <p
+          style={{
+            fontFamily: "EB Garamond, serif",
+            fontSize: 11,
+            color: "var(--taupe)",
+            fontStyle: "italic",
+            lineHeight: 1.4,
+          }}
+        >
+          Walked {stats.totalWalked.toLocaleString()}m · moved{" "}
+          {stats.displacement.toLocaleString()}m
+        </p>
+      </div>
     </div>
   );
 }

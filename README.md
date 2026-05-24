@@ -1,4 +1,4 @@
-# ⚓ Dead Reckoning: Navigating Like an Austronesian Sailor
+# Dead Reckoning Simulation Interactive Web App: Navigating Like an Austronesian Sailor
 
 > _"They had no compass, no GPS, no instruments. Just the stars, the waves, and an intimate knowledge of direction and distance. And somehow, they found every island in the Pacific."_
 
