@@ -15,8 +15,8 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 backend/.vscode/*
+backend/__pycache__/*
 backend/app/__pycache__/*
-__pycache__/*
 !.vscode/extensions.json
 .idea
 .DS_Store

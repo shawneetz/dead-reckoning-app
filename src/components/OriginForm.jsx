@@ -65,7 +65,7 @@ export default function OriginForm({ value, onChange, onConfirm, disabled }) {
         />
       </div>
 
-      {value.description.trim() && (
+      {value.description?.trim() && (
         <div>
           <label
             style={{
@@ -76,19 +76,29 @@ export default function OriginForm({ value, onChange, onConfirm, disabled }) {
             }}
             className="uppercase block mb-1"
           >
-            Auto-close (seconds, 0 = manual)
+            Popup duration (seconds, min 1)
           </label>
           <input
             type="number"
-            placeholder="0"
-            min="0"
+            min="1"
             max="60"
-            value={value.duration || ""}
+            value={value.duration ?? 5}
             onChange={(e) =>
-              update("duration", parseInt(e.target.value, 10) || 0)
+              update("duration", Math.max(1, parseInt(e.target.value, 10) || 1))
             }
             disabled={disabled}
           />
+          <p
+            style={{
+              fontFamily: "EB Garamond, serif",
+              fontSize: 11,
+              color: "var(--taupe)",
+              fontStyle: "italic",
+              marginTop: 3,
+            }}
+          >
+            Popup auto-closes after this many seconds during playback.
+          </p>
         </div>
       )}
 
@@ -111,7 +121,6 @@ export default function OriginForm({ value, onChange, onConfirm, disabled }) {
         />
       </div>
 
-      {/* Confirm button — saves the start pin and reveals StepForm */}
       <button
         onClick={onConfirm}
         disabled={disabled}
@@ -126,7 +135,7 @@ export default function OriginForm({ value, onChange, onConfirm, disabled }) {
           letterSpacing: "0.18em",
         }}
       >
-        ⚓ Set Start Pin
+        Set Start Pin
       </button>
     </div>
   );

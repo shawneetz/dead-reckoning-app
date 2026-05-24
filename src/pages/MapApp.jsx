@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import MapView from "../components/MapView";
 import StepForm from "../components/StepForm";
 import StepList from "../components/StepList";
@@ -12,6 +12,7 @@ import { calcStats } from "../utils/deadReckoning";
 import { useAuth } from "../context/AuthContext";
 import { useRouteSync } from "../hooks/useRouteSync";
 import { apiFetch } from "../lib/api";
+import BalangayIcon from "../assets/balangay-icon.svg";
 
 export default function MapApp() {
   const { routeId } = useParams();
@@ -34,21 +35,40 @@ export default function MapApp() {
   const [showSave, setShowSave] = useState(false);
   const [showBrowser, setShowBrowser] = useState(false);
   const [activeModalIndex, setActiveModalIndex] = useState(null);
-  const [pausedForModal, setPausedForModal] = useState(false);
+  const [pausedByUser, setPausedByUser] = useState(false);
+  const [timerRemaining, setTimerRemaining] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   const autoResumeRef = useRef(null);
+  const timerTickRef = useRef(null);
+  const timerStartRef = useRef(null);
+  const timerDurationRef = useRef(0);
   const intervalRef = useRef(null);
 
   const stats = calcStats(steps, origin);
-  const { savedRoute, saving, saveError, saveRoute, loadRoute, togglePublic } =
-    useRouteSync({ steps, origin, stats });
+  const {
+    savedRoute,
+    saving,
+    saveError,
+    routeCount,
+    atRouteLimit,
+    MAX_ROUTES,
+    saveRoute,
+    loadRoute,
+    togglePublic,
+    clearSavedRoute,
+  } = useRouteSync({ steps, origin, originMeta, stats });
 
-  // Load from URL param
+  const isOwner = user && savedRoute?.user_id === user.id;
+
+  // Load route from URL param
   useEffect(() => {
     if (!routeId) return;
     loadRoute(routeId)
-      .then(({ route, steps: loaded }) => {
+      .then(({ route, steps: loaded, originMeta: loadedMeta }) => {
         setOrigin([route.origin_lat, route.origin_lng]);
         setSteps(loaded);
+        if (loadedMeta) setOriginMeta(loadedMeta);
         setOriginConfirmed(true);
       })
       .catch(() => {});
@@ -86,6 +106,7 @@ export default function MapApp() {
   function resetAll() {
     clearInterval(intervalRef.current);
     clearTimeout(autoResumeRef.current);
+    clearInterval(timerTickRef.current);
     setSteps([]);
     setHistory([]);
     setRedoStack([]);
@@ -96,41 +117,62 @@ export default function MapApp() {
     setIsPlaying(false);
     setHasStarted(false);
     setActiveModalIndex(null);
-    setPausedForModal(false);
+    setPausedByUser(false);
+    setTimerRemaining(null);
   }
 
-  // Load a seeded route object — replaces handleLoadPreset entirely
-  function handleLoadRoute(route) {
-    resetAll();
-    setTimeout(() => {
-      setOrigin(route.origin);
-      setOriginMeta(route.originMeta);
-      setSteps(route.steps);
-      setOriginConfirmed(true);
-    }, 50);
+  function startAutoTimer(seconds, onComplete) {
+    clearTimeout(autoResumeRef.current);
+    clearInterval(timerTickRef.current);
+    timerDurationRef.current = seconds;
+    timerStartRef.current = Date.now();
+    setTimerRemaining(seconds);
+    timerTickRef.current = setInterval(() => {
+      const elapsed = (Date.now() - timerStartRef.current) / 1000;
+      const remaining = Math.max(0, seconds - elapsed);
+      setTimerRemaining(parseFloat(remaining.toFixed(1)));
+    }, 100);
+    autoResumeRef.current = setTimeout(() => {
+      clearInterval(timerTickRef.current);
+      setTimerRemaining(null);
+      onComplete();
+    }, seconds * 1000);
   }
 
-  function openStepPopup(stepIndex) {
+  function pauseAutoTimer() {
+    clearTimeout(autoResumeRef.current);
+    clearInterval(timerTickRef.current);
+    const elapsed = (Date.now() - timerStartRef.current) / 1000;
+    const remaining = Math.max(0, timerDurationRef.current - elapsed);
+    setTimerRemaining(parseFloat(remaining.toFixed(1)));
+    return remaining;
+  }
+
+  function openStepPopup(stepIndex, { keepPlaying = false } = {}) {
     const step =
       stepIndex === -1
         ? { ...originMeta, bearing: null, distance: null }
         : steps[stepIndex];
     if (!step) return;
     setActiveModalIndex(stepIndex);
-    setPausedForModal(true);
     if (step.duration > 0) {
-      clearTimeout(autoResumeRef.current);
-      autoResumeRef.current = setTimeout(() => {
+      setIsPlaying(true);
+      setPausedByUser(false);
+      startAutoTimer(step.duration, () => {
         setActiveModalIndex(null);
-        setPausedForModal(false);
+        setTimerRemaining(null);
         startInterval(stepIndex === -1 ? 0 : stepIndex + 1);
-      }, step.duration * 1000);
+      });
+    } else {
+      setIsPlaying(false);
+      setPausedByUser(true);
     }
   }
 
   function startInterval(fromIndex) {
     clearInterval(intervalRef.current);
     setIsPlaying(true);
+    setPausedByUser(false);
     intervalRef.current = setInterval(() => {
       setPlayIndex((i) => {
         const next = i + 1;
@@ -142,8 +184,7 @@ export default function MapApp() {
         const arrivedStep = steps[next - 1];
         if (arrivedStep?.description || arrivedStep?.imageUrl) {
           clearInterval(intervalRef.current);
-          setIsPlaying(false);
-          openStepPopup(next - 1);
+          openStepPopup(next - 1, { keepPlaying: true });
         }
         return next;
       });
@@ -155,7 +196,7 @@ export default function MapApp() {
     setHasStarted(true);
     if (originMeta.description && playIndex === 0) {
       setPlayIndex(0);
-      openStepPopup(-1);
+      openStepPopup(-1, { keepPlaying: true });
       return;
     }
     const startIndex = playIndex >= steps.length ? 0 : playIndex;
@@ -163,25 +204,69 @@ export default function MapApp() {
     const firstStep = steps[startIndex];
     if (startIndex === 0 && (firstStep?.description || firstStep?.imageUrl)) {
       setPlayIndex(1);
-      openStepPopup(0);
+      openStepPopup(0, { keepPlaying: true });
       return;
     }
     startInterval(startIndex);
   }
 
   function handlePause() {
-    clearInterval(intervalRef.current);
-    clearTimeout(autoResumeRef.current);
-    setIsPlaying(false);
-    setPausedForModal(false);
+    if (activeModalIndex !== null && timerRemaining !== null) {
+      pauseAutoTimer();
+      setIsPlaying(false);
+      setPausedByUser(true);
+    } else {
+      clearInterval(intervalRef.current);
+      setIsPlaying(false);
+      setPausedByUser(true);
+    }
   }
 
   function handleResume() {
-    clearTimeout(autoResumeRef.current);
-    const fromIndex = activeModalIndex === -1 ? 0 : playIndex;
-    setActiveModalIndex(null);
-    setPausedForModal(false);
-    startInterval(fromIndex);
+    if (activeModalIndex !== null && timerRemaining !== null) {
+      const remaining = timerRemaining;
+      const stepIndex = activeModalIndex;
+      setIsPlaying(true);
+      setPausedByUser(false);
+      startAutoTimer(remaining, () => {
+        setActiveModalIndex(null);
+        setTimerRemaining(null);
+        startInterval(stepIndex === -1 ? 0 : stepIndex + 1);
+      });
+    } else if (activeModalIndex !== null) {
+      setActiveModalIndex(null);
+      setPausedByUser(false);
+      startInterval(playIndex);
+    } else {
+      setPausedByUser(false);
+      startInterval(playIndex);
+    }
+  }
+
+  function handleLoadRoute(route) {
+    resetAll();
+    setTimeout(() => {
+      setOrigin(route.origin);
+      setOriginMeta(route.originMeta);
+      setSteps(route.steps);
+      setOriginConfirmed(true);
+    }, 50);
+  }
+
+  async function handleDeleteRoute() {
+    if (!savedRoute?.id) return;
+    if (!confirm(`Delete "${savedRoute.title}"? This cannot be undone.`))
+      return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/routes/${savedRoute.id}`, { method: "DELETE" });
+      clearSavedRoute?.();
+      resetAll();
+    } catch (e) {
+      alert("Delete failed: " + e.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function handleMapClick(latlng) {
@@ -190,27 +275,33 @@ export default function MapApp() {
 
   const handleMarkerClick = useCallback(
     (index) => {
-      if (isPlaying) return;
+      if (isPlaying && !pausedByUser) return;
       setActiveModalIndex(index);
-      setPausedForModal(false);
+      setPausedByUser(false);
+      setTimerRemaining(null);
     },
-    [steps, isPlaying],
+    [steps, isPlaying, pausedByUser],
   );
 
   const handleOriginClick = useCallback(() => {
-    if (isPlaying) return;
+    if (isPlaying && !pausedByUser) return;
     setActiveModalIndex(-1);
-    setPausedForModal(false);
-  }, [isPlaying]);
+    setPausedByUser(false);
+    setTimerRemaining(null);
+  }, [isPlaying, pausedByUser]);
 
   const handlePopupClose = useCallback(
     (index) => {
       if (activeModalIndex === index) {
+        clearTimeout(autoResumeRef.current);
+        clearInterval(timerTickRef.current);
         setActiveModalIndex(null);
-        setPausedForModal(false);
+        setTimerRemaining(null);
+        if (!pausedByUser) setPausedByUser(true);
+        setIsPlaying(false);
       }
     },
-    [activeModalIndex],
+    [activeModalIndex, pausedByUser],
   );
 
   useEffect(() => {
@@ -231,12 +322,15 @@ export default function MapApp() {
   const canUndo = history.length > 0;
   const canRedo = redoStack.length > 0;
   const visibleIndex = hasStarted ? playIndex : steps.length;
+  const showPause = isPlaying && !pausedByUser;
+  const showResume = !isPlaying || pausedByUser;
+  const isResume = hasStarted && (playIndex > 0 || pausedByUser);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {/* ── LEFT SIDEBAR ── */}
       <div
-        className="w-80 flex flex-col z-10 overflow-hidden shrink-0"
+        className="w-80 flex flex-col z-10 overflow-hidden flex-shrink-0"
         style={{
           background: "var(--linen)",
           borderRight: "2px solid var(--mahogany)",
@@ -244,24 +338,36 @@ export default function MapApp() {
       >
         {/* Header */}
         <div
-          className="px-4 py-3 flex items-center justify-between shrink-0"
+          className="px-4 py-3 flex items-center justify-between flex-shrink-0"
           style={{
             background: "var(--mahogany)",
             borderBottom: "2px solid var(--ink)",
           }}
         >
           <div>
-            <h1
+            <Link
+              to="/"
               style={{
                 fontFamily: "Cinzel, serif",
                 letterSpacing: "0.15em",
                 color: "var(--parchment)",
-                fontSize: 14,
+                fontSize: 15,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
               }}
               className="font-bold uppercase"
             >
-              ⚓ Balangay
-            </h1>
+              <img
+                src={BalangayIcon}
+                alt=""
+                style={{
+                  width: 20,
+                  height: 20,
+                }}
+              />
+              Balangay
+            </Link>
             <p
               style={{
                 color: "var(--sand)",
@@ -278,27 +384,73 @@ export default function MapApp() {
                   : `${steps.length} step${steps.length !== 1 ? "s" : ""} plotted`}
             </p>
           </div>
-          {user && originConfirmed && steps.length > 0 && (
-            <button
-              onClick={() => setShowSave(true)}
-              className="btn-stamp px-3 py-1.5"
+
+          {user &&
+            originConfirmed &&
+            steps.length > 0 &&
+            (atRouteLimit ? (
+              <span
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: 7,
+                  letterSpacing: "0.15em",
+                  color: "#7A1A1A",
+                  border: "1px solid #7A1A1A",
+                  padding: "3px 6px",
+                }}
+                className="uppercase shrink-0"
+              >
+                Limit reached
+              </span>
+            ) : (
+              <button
+                onClick={() => setShowSave(true)}
+                className="btn-stamp px-3 py-1.5"
+                style={{
+                  background: "var(--parchment)",
+                  border: "2px solid var(--ink)",
+                  color: "var(--ink)",
+                  boxShadow: "2px 2px 0px var(--ink)",
+                  fontSize: 9,
+                }}
+              >
+                {savedRoute?.id ? "Update" : "Save"}
+              </button>
+            ))}
+        </div>
+
+        {/* Anon nudge */}
+        {!user && originConfirmed && steps.length > 0 && (
+          <div
+            className="px-4 py-2 flex-shrink-0"
+            style={{
+              background: "var(--mapfade)",
+              borderBottom: "1px solid var(--coolstone)",
+            }}
+          >
+            <p
               style={{
-                background: "var(--parchment)",
-                border: "2px solid var(--ink)",
-                color: "var(--ink)",
-                boxShadow: "2px 2px 0px var(--ink)",
-                fontSize: 9,
+                fontFamily: "EB Garamond, serif",
+                fontSize: 12,
+                color: "var(--taupe)",
+                fontStyle: "italic",
               }}
             >
-              {savedRoute?.id ? "Update" : "Save"}
-            </button>
-          )}
-        </div>
+              <Link
+                to="/auth"
+                style={{ color: "var(--ochre)", textDecoration: "underline" }}
+              >
+                Sign in
+              </Link>{" "}
+              to save and share this route.
+            </p>
+          </div>
+        )}
 
         {/* Saved route bar */}
         {savedRoute?.id && (
           <div
-            className="px-4 py-2 flex items-center justify-between shrink-0"
+            className="px-4 py-2 flex items-center justify-between flex-shrink-0"
             style={{
               background: "var(--mapfade)",
               borderBottom: "1px solid var(--coolstone)",
@@ -311,55 +463,47 @@ export default function MapApp() {
                 color: "var(--ochre)",
                 fontStyle: "italic",
               }}
-              className="truncate flex-1"
+              className="truncate flex-1 mr-3"
             >
               {savedRoute.title}
             </span>
-            <div className="flex items-center gap-3 shrink-0 ml-2">
-              <button
-                onClick={togglePublic}
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: 8,
-                  letterSpacing: "0.15em",
-                  color: savedRoute.is_public ? "var(--moss)" : "var(--taupe)",
-                }}
-                className="uppercase hover:opacity-70 transition-opacity"
-              >
-                {savedRoute.is_public ? "Public" : "Private"}
-              </button>
-              <button
-                onClick={async () => {
-                  if (
-                    !confirm(
-                      `Delete "${savedRoute.title}"? This cannot be undone.`,
-                    )
-                  )
-                    return;
-                  try {
-                    await apiFetch(`/api/routes/${savedRoute.id}`, {
-                      method: "DELETE",
-                    });
-                    resetAll();
-                  } catch (e) {
-                    alert("Delete failed: " + e.message);
-                  }
-                }}
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: 9,
-                  color: "#7A1A1A",
-                  letterSpacing: "0.1em",
-                }}
-                className="uppercase hover:opacity-70 transition-opacity"
-              >
-                ✕ Delete
-              </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {isOwner && (
+                <button
+                  onClick={togglePublic}
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 8,
+                    letterSpacing: "0.15em",
+                    color: savedRoute.is_public
+                      ? "var(--moss)"
+                      : "var(--taupe)",
+                  }}
+                  className="uppercase hover:opacity-70 transition-opacity"
+                >
+                  {savedRoute.is_public ? "Public" : "Private"}
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  onClick={handleDeleteRoute}
+                  disabled={deleting}
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 9,
+                    color: "#7A1A1A",
+                    letterSpacing: "0.1em",
+                  }}
+                  className="uppercase hover:opacity-70 transition-opacity disabled:opacity-30"
+                >
+                  {deleting ? "Deleting…" : "✕ Delete"}
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {/* STATE 1: No origin — placeholder */}
+        {/* STATE 1: No origin */}
         {!origin && (
           <div
             className="flex-1 flex flex-col items-center justify-center px-6 gap-5"
@@ -422,13 +566,13 @@ export default function MapApp() {
                   letterSpacing: "0.18em",
                 }}
               >
-                ⚓ Browse Routes
+                Browse Routes
               </button>
             </div>
           </div>
         )}
 
-        {/* STATE 2: Origin placed, awaiting confirmation — OriginForm */}
+        {/* STATE 2: Origin placed, awaiting confirmation */}
         {origin && !originConfirmed && (
           <OriginForm
             value={originMeta}
@@ -442,17 +586,27 @@ export default function MapApp() {
         {origin && originConfirmed && (
           <>
             <div className="flex-1 overflow-y-auto">
-              <StepForm onAddStep={addStep} disabled={isPlaying} />
+              <StepForm
+                onAddStep={addStep}
+                disabled={isPlaying && !pausedByUser}
+              />
             </div>
             <Controls
-              isPlaying={isPlaying}
+              isPlaying={showPause}
               canUndo={canUndo}
               canRedo={canRedo}
               steps={steps}
               origin={origin}
               playIndex={playIndex}
-              onPlay={handlePlay}
-              onPause={handlePause}
+              isResume={isResume}
+              onPlay={
+                showResume
+                  ? pausedByUser
+                    ? handleResume
+                    : handlePlay
+                  : undefined
+              }
+              onPause={showPause ? handlePause : undefined}
               onReset={resetAll}
               onUndo={undoStep}
               onRedo={redoStep}
@@ -475,6 +629,8 @@ export default function MapApp() {
           onOriginClick={handleOriginClick}
           activeModalIndex={activeModalIndex}
           onPopupClose={handlePopupClose}
+          timerRemaining={timerRemaining}
+          timerDuration={timerDurationRef.current}
         />
 
         <StatsPanel steps={steps} origin={origin} />
@@ -483,25 +639,25 @@ export default function MapApp() {
           <StepList
             steps={steps}
             onDelete={deleteStep}
-            disabled={isPlaying}
+            disabled={isPlaying && !pausedByUser}
             activeModalIndex={activeModalIndex}
             onStepClick={(i) => {
-              if (!isPlaying) setActiveModalIndex(i);
+              if (!isPlaying || pausedByUser) setActiveModalIndex(i);
             }}
           />
         )}
 
-        {pausedForModal && (
+        {activeModalIndex !== null && (
           <button
-            onClick={handleResume}
+            onClick={pausedByUser ? handleResume : handlePause}
             className="btn-stamp px-8 py-2.5 absolute"
             style={{
               bottom: 28,
               left: "50%",
               transform: "translateX(-50%)",
-              background: "var(--mahogany)",
+              background: pausedByUser ? "var(--mahogany)" : "var(--gold)",
               border: "2px solid var(--ink)",
-              color: "var(--parchment)",
+              color: pausedByUser ? "var(--parchment)" : "var(--ink)",
               boxShadow: "4px 4px 0px var(--ink)",
               zIndex: 1000,
               fontFamily: "Cinzel, serif",
@@ -509,12 +665,11 @@ export default function MapApp() {
               letterSpacing: "0.18em",
             }}
           >
-            ▶ RESUME PLAYBACK
+            {pausedByUser ? "▶ RESUME PLAYBACK" : "⏸ PAUSE"}
           </button>
         )}
       </div>
 
-      {/* Route Browser modal */}
       {showBrowser && (
         <RouteBrowser
           onLoad={handleLoadRoute}

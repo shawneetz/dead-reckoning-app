@@ -114,7 +114,7 @@ export default function Controls({
           color: "var(--mahogany)",
         }}
       >
-        ⚓ Browse Routes
+        Browse Routes
       </button>
 
       {/* Export row */}

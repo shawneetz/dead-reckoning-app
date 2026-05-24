@@ -1,12 +1,28 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
 
-export function useRouteSync({ steps, origin, stats }) {
+export const MAX_ROUTES = 10;
+
+export function useRouteSync({ steps, origin, originMeta, stats }) {
   const { user } = useAuth();
   const [savedRoute, setSavedRoute] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [routeCount, setRouteCount] = useState(0);
+
+  // Fetch route count on sign-in
+  useEffect(() => {
+    if (!user) {
+      setRouteCount(0);
+      return;
+    }
+    apiFetch("/api/routes/mine")
+      .then((routes) => setRouteCount(routes.length))
+      .catch(() => {});
+  }, [user]);
+
+  const atRouteLimit = user && routeCount >= MAX_ROUTES && !savedRoute?.id;
 
   const saveRoute = useCallback(
     async (title, description, isPublic) => {
@@ -14,8 +30,6 @@ export function useRouteSync({ steps, origin, stats }) {
       setSaving(true);
       setSaveError(null);
       try {
-        // Map frontend step shape { bearing, distance, label }
-        // to API shape { bearing_deg, distance_m, label }
         const mappedSteps = steps.map((s, i) => ({
           step_index: i,
           bearing_deg: s.bearing,
@@ -25,6 +39,7 @@ export function useRouteSync({ steps, origin, stats }) {
           image_url: s.imageUrl || null,
           pin_icon_id: s.pinIconId || null,
           pin_color: s.pinColor || "#378ADD",
+          duration_sec: s.duration || 0,
         }));
 
         const payload = {
@@ -32,6 +47,9 @@ export function useRouteSync({ steps, origin, stats }) {
           description,
           origin_lat: origin[0],
           origin_lng: origin[1],
+          origin_label: originMeta?.label || null,
+          origin_description: originMeta?.description || null,
+          origin_duration: originMeta?.duration || 0,
           is_public: isPublic,
           total_walked_m: stats.totalWalked,
           displacement_m: stats.displacement,
@@ -42,7 +60,6 @@ export function useRouteSync({ steps, origin, stats }) {
 
         let route;
         if (savedRoute?.id) {
-          // Update existing route metadata
           await apiFetch(`/api/routes/${savedRoute.id}`, {
             method: "PUT",
             body: JSON.stringify({
@@ -53,9 +70,11 @@ export function useRouteSync({ steps, origin, stats }) {
               displacement_m: stats.displacement,
               drift_pct: parseFloat(stats.driftPct),
               bearing_deg: stats.bearing,
+              origin_label: originMeta?.label || null,
+              origin_description: originMeta?.description || null,
+              origin_duration: originMeta?.duration || 0,
             }),
           });
-          // Replace steps
           await apiFetch(`/api/routes/${savedRoute.id}/steps`, {
             method: "PUT",
             body: JSON.stringify(mappedSteps),
@@ -66,6 +85,7 @@ export function useRouteSync({ steps, origin, stats }) {
             method: "POST",
             body: JSON.stringify(payload),
           });
+          setRouteCount((c) => c + 1);
         }
 
         setSavedRoute(route);
@@ -76,7 +96,7 @@ export function useRouteSync({ steps, origin, stats }) {
         setSaving(false);
       }
     },
-    [user, origin, steps, stats, savedRoute],
+    [user, origin, originMeta, steps, stats, savedRoute],
   );
 
   const loadRoute = useCallback(async (routeId) => {
@@ -85,13 +105,24 @@ export function useRouteSync({ steps, origin, stats }) {
       apiFetch(`/api/routes/${routeId}/steps`),
     ]);
     setSavedRoute(route);
-    // Map API shape back to frontend step shape
+
     const mappedSteps = stepsData.map((s) => ({
       bearing: s.bearing_deg,
       distance: s.distance_m,
       label: s.label || "",
+      description: s.description || "",
+      duration: s.duration_sec || 0,
+      pinIcon: null, // pinIcon not yet roundtripped from DB
     }));
-    return { route, steps: mappedSteps };
+
+    const loadedOriginMeta = {
+      label: route.origin_label || "",
+      description: route.origin_description || "",
+      duration: route.origin_duration || 0,
+      pinIcon: null,
+    };
+
+    return { route, steps: mappedSteps, originMeta: loadedOriginMeta };
   }, []);
 
   const togglePublic = useCallback(async () => {
@@ -104,5 +135,21 @@ export function useRouteSync({ steps, origin, stats }) {
     return updated;
   }, [savedRoute]);
 
-  return { savedRoute, saving, saveError, saveRoute, loadRoute, togglePublic };
+  const clearSavedRoute = useCallback(() => {
+    setSavedRoute(null);
+    setRouteCount((c) => Math.max(0, c - 1));
+  }, []);
+
+  return {
+    savedRoute,
+    saving,
+    saveError,
+    routeCount,
+    atRouteLimit,
+    MAX_ROUTES,
+    saveRoute,
+    loadRoute,
+    togglePublic,
+    clearSavedRoute,
+  };
 }

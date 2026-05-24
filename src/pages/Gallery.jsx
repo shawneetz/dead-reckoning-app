@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import BalangayIcon from "../assets/balangay-icon.svg";
 
 function DriftBadge({ drift }) {
   if (drift == null) return null;
@@ -156,19 +157,35 @@ function SectionHeader({ title, count }) {
   );
 }
 
-function EmptySection({ message }) {
+function EmptySection({ message, showCTA }) {
   return (
-    <p
-      style={{
-        fontFamily: "EB Garamond, serif",
-        fontSize: 14,
-        color: "var(--taupe)",
-        fontStyle: "italic",
-      }}
-      className="py-4"
-    >
-      {message}
-    </p>
+    <div className="py-10 text-center">
+      <p
+        style={{
+          fontFamily: "EB Garamond, serif",
+          fontSize: 15,
+          color: "var(--taupe)",
+          fontStyle: "italic",
+        }}
+        className="mb-6"
+      >
+        {message}
+      </p>
+      {showCTA && (
+        <Link
+          to="/app"
+          className="btn-stamp px-6 py-2"
+          style={{
+            background: "var(--mahogany)",
+            border: "2px solid var(--ink)",
+            color: "var(--parchment)",
+            boxShadow: "4px 4px 0px var(--ink)",
+          }}
+        >
+          Create a Route
+        </Link>
+      )}
+    </div>
   );
 }
 
@@ -180,6 +197,13 @@ export default function Gallery() {
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
+
+  const TABS = [
+    { id: "all", label: "All" },
+    { id: "historical", label: "Historical" },
+    { id: "places", label: "Places" },
+    { id: "public", label: "Public" },
+  ];
 
   useEffect(() => {
     apiFetch("/api/routes/?limit=100")
@@ -197,18 +221,11 @@ export default function Gallery() {
 
   const historical = filtered.filter((r) => r.category === "historical");
   const places = filtered.filter((r) => r.category === "place");
-  const community = filtered.filter(
+  const publicRoutes = filtered.filter(
     (r) =>
       r.category == null ||
       (r.category !== "historical" && r.category !== "place"),
   );
-
-  const TABS = [
-    { id: "all", label: "All Routes" },
-    { id: "historical", label: "Historical" },
-    { id: "places", label: "Places" },
-    { id: "community", label: "Community" },
-  ];
 
   return (
     <div
@@ -227,14 +244,24 @@ export default function Gallery() {
           to="/"
           style={{
             fontFamily: "Cinzel, serif",
+
             letterSpacing: "0.15em",
+
             color: "var(--parchment)",
+
             fontSize: 15,
+
+            display: "flex",
+
+            alignItems: "center",
+
+            gap: 8,
           }}
           className="font-bold uppercase"
         >
-          ⚓ Balangay
-        </Link>
+          <img src={BalangayIcon} alt="" style={{ width: 20, height: 20 }} />
+          Balangay
+        </Link>{" "}
         <div className="flex gap-5 items-center">
           {user ? (
             <>
@@ -295,7 +322,7 @@ export default function Gallery() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        {/* Header */}
+        {/* Page header */}
         <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
           <div>
             <h1
@@ -307,7 +334,7 @@ export default function Gallery() {
               }}
               className="font-bold uppercase mb-1"
             >
-              Community Routes
+              Public Routes
             </h1>
             <p
               style={{
@@ -317,7 +344,8 @@ export default function Gallery() {
                 fontStyle: "italic",
               }}
             >
-              Public navigations from Balangay sailors worldwide
+              Historical navigations, notable places, and routes from Balangay
+              sailors
             </p>
           </div>
           <input
@@ -325,33 +353,40 @@ export default function Gallery() {
             placeholder="Search routes…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 220, fontFamily: "EB Garamond, serif" }}
+            style={{
+              width: 220,
+              fontFamily: "EB Garamond, serif",
+              background: "var(--parchment)",
+              border: "1.5px solid var(--taupe)",
+              color: "var(--ink)",
+              padding: "6px 10px",
+              fontSize: 14,
+            }}
           />
         </div>
 
         {/* Tabs */}
         <div
-          className="flex gap-0 mb-8"
+          className="flex mb-8"
           style={{
             border: "2px solid var(--mahogany)",
             background: "var(--mapfade)",
             width: "fit-content",
           }}
         >
-          {TABS.map((t) => (
+          {TABS.map((t, i) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-4 py-2 transition-all"
+              className="px-5 py-2 transition-all uppercase"
               style={{
                 fontFamily: "Cinzel, serif",
                 fontSize: 9,
                 letterSpacing: "0.2em",
-                textTransform: "uppercase",
                 background: tab === t.id ? "var(--mahogany)" : "transparent",
                 color: tab === t.id ? "var(--parchment)" : "var(--ochre)",
                 borderRight:
-                  t.id !== "community" ? "1px solid var(--mahogany)" : "none",
+                  i < TABS.length - 1 ? "1px solid var(--mahogany)" : "none",
               }}
             >
               {t.label}
@@ -387,7 +422,7 @@ export default function Gallery() {
 
         {!loading && !error && (
           <>
-            {/* All tab */}
+            {/* ALL tab */}
             {tab === "all" && (
               <>
                 {historical.length > 0 && (
@@ -415,14 +450,14 @@ export default function Gallery() {
                   </div>
                 )}
 
-                {community.length > 0 && (
+                {publicRoutes.length > 0 && (
                   <div className="mb-10">
                     <SectionHeader
-                      title="From the Community"
-                      count={community.length}
+                      title="Public Routes"
+                      count={publicRoutes.length}
                     />
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {community.map((r) => (
+                      {publicRoutes.map((r) => (
                         <RouteCard key={r.id} route={r} />
                       ))}
                     </div>
@@ -436,79 +471,50 @@ export default function Gallery() {
                         ? "No routes match your search."
                         : "No public routes yet."
                     }
+                    showCTA={!search}
                   />
                 )}
               </>
             )}
 
-            {/* Historical tab */}
-            {tab === "historical" && (
-              <div>
-                {historical.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {historical.map((r) => (
-                      <RouteCard key={r.id} route={r} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptySection message="No historical routes yet." />
-                )}
-              </div>
-            )}
+            {/* HISTORICAL tab */}
+            {tab === "historical" &&
+              (historical.length > 0 ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {historical.map((r) => (
+                    <RouteCard key={r.id} route={r} />
+                  ))}
+                </div>
+              ) : (
+                <EmptySection message="No historical routes yet." />
+              ))}
 
-            {/* Places tab */}
-            {tab === "places" && (
-              <div>
-                {places.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {places.map((r) => (
-                      <RouteCard key={r.id} route={r} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptySection message="No place routes yet." />
-                )}
-              </div>
-            )}
+            {/* PLACES tab */}
+            {tab === "places" &&
+              (places.length > 0 ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {places.map((r) => (
+                    <RouteCard key={r.id} route={r} />
+                  ))}
+                </div>
+              ) : (
+                <EmptySection message="No place routes yet." />
+              ))}
 
-            {/* Community tab */}
-            {tab === "community" && (
-              <div>
-                {community.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {community.map((r) => (
-                      <RouteCard key={r.id} route={r} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-16">
-                    <p
-                      style={{
-                        fontFamily: "EB Garamond, serif",
-                        fontSize: 15,
-                        color: "var(--taupe)",
-                        fontStyle: "italic",
-                      }}
-                      className="mb-6"
-                    >
-                      No community routes yet. Be the first to publish one.
-                    </p>
-                    <Link
-                      to="/app"
-                      className="btn-stamp px-6 py-2"
-                      style={{
-                        background: "var(--mahogany)",
-                        border: "2px solid var(--ink)",
-                        color: "var(--parchment)",
-                        boxShadow: "4px 4px 0px var(--ink)",
-                      }}
-                    >
-                      Create a Route
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
+            {/* PUBLIC tab */}
+            {tab === "public" &&
+              (publicRoutes.length > 0 ? (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {publicRoutes.map((r) => (
+                    <RouteCard key={r.id} route={r} />
+                  ))}
+                </div>
+              ) : (
+                <EmptySection
+                  message="No public routes yet. Be the first to publish one."
+                  showCTA
+                />
+              ))}
           </>
         )}
       </main>

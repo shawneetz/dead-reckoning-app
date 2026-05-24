@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import BalangayIcon from "../assets/balangay-icon.svg";
 
 function RouteCard({ route }) {
   const drift = route.drift_pct != null ? parseFloat(route.drift_pct) : null;
@@ -178,7 +179,8 @@ export default function ProfilePage() {
           }}
           className="font-bold uppercase"
         >
-          ⚓ Balangay
+          <img src={BalangayIcon} alt="" style={{ width: 18, height: 18 }} />
+          Balangay{" "}
         </Link>
         <div className="flex gap-4 items-center">
           <Link

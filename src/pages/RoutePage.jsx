@@ -14,6 +14,7 @@ export default function RoutePage() {
   const [error, setError] = useState(null);
   const [forking, setForking] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeModalIndex, setActiveModalIndex] = useState(null);
 
   useEffect(() => {
     if (!routeId) return;
@@ -29,6 +30,8 @@ export default function RoutePage() {
             distance: step.distance_m,
             label: step.label || "",
             description: step.description || "",
+            duration: step.duration_sec || 0,
+            pinIcon: null,
           })),
         );
       })
@@ -102,6 +105,16 @@ export default function RoutePage() {
         >
           Route not found
         </p>
+        <p
+          style={{
+            fontFamily: "EB Garamond, serif",
+            fontSize: 13,
+            color: "var(--taupe)",
+            fontStyle: "italic",
+          }}
+        >
+          {error}
+        </p>
         <Link
           to="/gallery"
           style={{
@@ -136,13 +149,20 @@ export default function RoutePage() {
       : route.category === "place"
         ? { background: "var(--moss)", color: "var(--cream)" }
         : null;
-
   const categoryLabel =
     route.category === "historical"
       ? "Historical"
       : route.category === "place"
         ? "Place"
         : null;
+
+  // Reconstruct originMeta from DB fields so the origin popup works
+  const originMeta = {
+    label: route.origin_label || "",
+    description: route.origin_description || "",
+    duration: route.origin_duration || 0,
+    pinIcon: null,
+  };
 
   return (
     <div
@@ -223,12 +243,10 @@ export default function RoutePage() {
             background: "var(--cream)",
           }}
         >
-          {/* Title block */}
           <div
             className="p-5"
             style={{ borderBottom: "3px double var(--leather)" }}
           >
-            {/* Category + Owner badges */}
             {(categoryLabel || isOwner) && (
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 {categoryLabel && (
@@ -262,7 +280,6 @@ export default function RoutePage() {
                 )}
               </div>
             )}
-
             <h1
               style={{
                 fontFamily: "Cinzel, serif",
@@ -474,7 +491,6 @@ export default function RoutePage() {
             >
               {forking ? "Forking…" : "⑂ Fork this Route"}
             </button>
-
             {isOwner && (
               <button
                 onClick={handleDelete}
@@ -490,7 +506,6 @@ export default function RoutePage() {
                 {deleting ? "Deleting…" : "✕ Delete Route"}
               </button>
             )}
-
             <p
               style={{
                 fontFamily: "EB Garamond, serif",
@@ -510,15 +525,23 @@ export default function RoutePage() {
           </div>
         </div>
 
-        {/* Map — read only */}
+        {/* Map — read-only with full popup support */}
         <div className="flex-1 relative">
           <MapView
             steps={steps}
             origin={route ? [route.origin_lat, route.origin_lng] : null}
+            originMeta={originMeta}
             playIndex={steps.length}
             onMapClick={() => {}}
             isPlaying={false}
-            onMarkerClick={() => {}}
+            onMarkerClick={(i) => setActiveModalIndex(i)}
+            onOriginClick={() => setActiveModalIndex(-1)}
+            activeModalIndex={activeModalIndex}
+            onPopupClose={(i) => {
+              if (activeModalIndex === i) setActiveModalIndex(null);
+            }}
+            timerRemaining={null}
+            timerDuration={0}
           />
         </div>
       </div>

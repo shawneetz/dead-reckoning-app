@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import BalangayIcon from "../assets/balangay-icon.svg";
 
 const PRESETS = [
   {
@@ -38,17 +39,29 @@ export default function LandingPage() {
         }}
         className="flex items-center justify-between px-6 py-3"
       >
-        <span
+        <Link
+          to="/"
           style={{
             fontFamily: "Cinzel, serif",
             letterSpacing: "0.15em",
             color: "var(--parchment)",
             fontSize: 15,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
-          className="font-bold uppercase tracking-widest"
+          className="font-bold uppercase"
         >
-          ⚓ Balangay
-        </span>
+          <img
+            src={BalangayIcon}
+            alt=""
+            style={{
+              width: 20,
+              height: 20,
+            }}
+          />
+          Balangay
+        </Link>{" "}
         <div className="flex gap-6 items-center">
           <Link
             to="/gallery"

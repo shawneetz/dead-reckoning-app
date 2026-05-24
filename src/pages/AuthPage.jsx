@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import BalangayIcon from "../assets/balangay-icon.svg";
 
 export default function AuthPage() {
   const {
@@ -41,15 +42,26 @@ export default function AuthPage() {
         to="/"
         style={{
           fontFamily: "Cinzel, serif",
+
           letterSpacing: "0.15em",
+
           color: "var(--mahogany)",
+
           fontSize: 18,
+
+          display: "flex",
+
+          alignItems: "center",
+
+          gap: 10,
+
+          marginBottom: 40,
         }}
-        className="font-bold uppercase mb-10 hover:opacity-70 transition-opacity"
+        className="font-bold uppercase"
       >
+        <img src={BalangayIcon} alt="" style={{ width: 24, height: 24 }} />
         Balangay
       </Link>
-
       {/* Card */}
       <div
         className="w-full max-w-sm p-8"

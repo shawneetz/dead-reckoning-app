@@ -62,65 +62,114 @@ function makeDivIcon(pinIcon) {
   return null;
 }
 
-function popupHTML(step, index, total) {
+function popupHTML(step, index, total, timerRemaining, timerDuration) {
   const isOrigin = index === -1;
   const title = isOrigin
     ? step.label || "Start"
     : step.label || `${step.bearing}° · ${step.distance}m`;
   const hasDesc = !!step.description;
+  const hasTimer = timerRemaining !== null && timerDuration > 0;
+  const progress = hasTimer
+    ? Math.max(0, Math.min(100, (timerRemaining / timerDuration) * 100))
+    : 0;
+  const isUrgent = hasTimer && timerRemaining <= 3;
+  const barColor = isUrgent ? "#7A1A1A" : "#5C3A1E";
+  const timerSec = hasTimer ? Math.ceil(timerRemaining) : 0;
 
   return `
-    <div style="font-family:'EB Garamond',Garamond,serif;min-width:200px;max-width:280px;">
-      <div style="
-        font-family:'Cinzel','Palatino Linotype',serif;
-        font-size:8px;letter-spacing:0.22em;
-        color:#F5EDD6;background:#5C3A1E;
-        padding:3px 10px;display:inline-block;
-        margin-bottom:8px;border:1px solid #2C1810;
-      ">${isOrigin ? "START" : `STEP ${index + 1}${total ? ` OF ${total}` : ""}`}</div>
-
-      <div style="
-        font-family:'Cinzel',serif;font-size:14px;font-weight:700;
-        color:#2C1810;letter-spacing:0.05em;text-transform:uppercase;
-        line-height:1.3;margin-bottom:${hasDesc ? "8px" : "10px"};
-      ">${title}</div>
+    <div style="font-family:'EB Garamond',Garamond,serif;min-width:220px;max-width:300px;">
 
       ${
-        hasDesc
+        hasTimer
           ? `
-        <div style="border-top:3px double #B8986A;margin-bottom:8px;"></div>
-        <div style="font-size:15px;color:#5C3A1E;line-height:1.65;margin-bottom:10px;">
-          ${step.description}
+        <!-- Timer progress bar -->
+        <div style="height:4px;background:#D8C5A7;margin-bottom:0;position:relative;overflow:hidden;">
+          <div style="
+            position:absolute;top:0;right:0;
+            height:100%;
+            width:${progress}%;
+            background:${barColor};
+            transition:width 0.1s linear;
+          "></div>
         </div>
       `
           : ""
       }
 
-      <div style="border-top:1px solid #C9C3B7;padding-top:8px;display:flex;gap:20px;">
+      <div style="padding:14px 16px 14px;">
+
+        <!-- Step pill + timer badge -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="
+            font-family:'Cinzel','Palatino Linotype',serif;
+            font-size:8px;letter-spacing:0.22em;
+            color:#F5EDD6;background:#5C3A1E;
+            padding:3px 10px;border:1px solid #2C1810;
+            text-transform:uppercase;
+          ">${isOrigin ? "START" : `STEP ${index + 1}${total ? ` OF ${total}` : ""}`}</div>
+
+          ${
+            hasTimer
+              ? `
+            <div style="
+              font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.15em;
+              color:${isUrgent ? "#F5EDD6" : "#7A6B3C"};
+              background:${isUrgent ? "#7A1A1A" : "transparent"};
+              border:1px solid ${isUrgent ? "#7A1A1A" : "#C4A35A"};
+              padding:2px 8px;
+              transition:all 0.3s;
+            ">${timerSec}s</div>
+          `
+              : ""
+          }
+        </div>
+
+        <!-- Title -->
+        <div style="
+          font-family:'Cinzel',serif;font-size:14px;font-weight:700;
+          color:#2C1810;letter-spacing:0.05em;text-transform:uppercase;
+          line-height:1.3;margin-bottom:${hasDesc ? "8px" : "10px"};
+        ">${title}</div>
+
         ${
-          !isOrigin
+          hasDesc
             ? `
-          <div>
-            <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Bearing</div>
-            <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.bearing}°</div>
-          </div>
-          <div>
-            <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Distance</div>
-            <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.distance}m</div>
+          <div style="border-top:3px double #B8986A;margin-bottom:8px;"></div>
+          <div style="font-size:15px;color:#5C3A1E;line-height:1.65;margin-bottom:10px;">
+            ${step.description}
           </div>
         `
             : ""
         }
-        ${
-          step.duration
-            ? `
-          <div>
-            <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Timer</div>
-            <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.duration}s</div>
-          </div>
-        `
-            : ""
-        }
+
+        <!-- Stats row -->
+        <div style="border-top:1px solid #C9C3B7;padding-top:8px;display:flex;gap:20px;">
+          ${
+            !isOrigin
+              ? `
+            <div>
+              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Bearing</div>
+              <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.bearing}°</div>
+            </div>
+            <div>
+              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Distance</div>
+              <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.distance}m</div>
+            </div>
+          `
+              : ""
+          }
+          ${
+            hasTimer
+              ? `
+            <div>
+              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Auto-close</div>
+              <div style="font-size:16px;font-weight:500;color:${isUrgent ? "#7A1A1A" : "#2C1810"};">${timerDuration}s</div>
+            </div>
+          `
+              : ""
+          }
+        </div>
+
       </div>
     </div>
   `;
@@ -137,6 +186,8 @@ export default function MapView({
   onOriginClick,
   activeModalIndex,
   onPopupClose,
+  timerRemaining,
+  timerDuration,
 }) {
   const visibleCount = playIndex !== undefined ? playIndex : steps.length;
   const allCoords = useMemo(() => buildCoords(steps, origin), [steps, origin]);
@@ -151,33 +202,61 @@ export default function MapView({
   const markerRefs = useRef({});
   const originRef = useRef(null);
 
-  // Open/close popups imperatively based on activeModalIndex
+  // Open/close popups imperatively
   useEffect(() => {
-    // Close all step markers
     Object.values(markerRefs.current).forEach((ref) => {
       try {
         ref?.closePopup();
       } catch {}
     });
-    // Close origin
     try {
       originRef.current?.closePopup();
     } catch {}
 
     if (activeModalIndex === null || activeModalIndex === undefined) return;
-
     setTimeout(() => {
       try {
-        if (activeModalIndex === -1) {
-          originRef.current?.openPopup();
-        } else {
-          markerRefs.current[activeModalIndex]?.openPopup();
-        }
+        if (activeModalIndex === -1) originRef.current?.openPopup();
+        else markerRefs.current[activeModalIndex]?.openPopup();
       } catch {}
     }, 60);
   }, [activeModalIndex]);
 
-  // Pan to active coord
+  // Update popup content when timer ticks — re-render the popup HTML in place
+  const activeRef =
+    activeModalIndex === -1
+      ? originRef
+      : { current: markerRefs.current[activeModalIndex] };
+
+  useEffect(() => {
+    if (activeModalIndex === null || timerRemaining === null) return;
+    const ref =
+      activeModalIndex === -1
+        ? originRef.current
+        : markerRefs.current[activeModalIndex];
+    if (!ref) return;
+    const popup = ref.getPopup?.();
+    if (!popup) return;
+    const step =
+      activeModalIndex === -1
+        ? { ...originMeta, bearing: null, distance: null }
+        : steps[activeModalIndex];
+    if (!step) return;
+    const el = popup.getElement?.();
+    if (el) {
+      const content = el.querySelector(".leaflet-popup-content");
+      if (content) {
+        content.innerHTML = popupHTML(
+          step,
+          activeModalIndex,
+          steps.length,
+          timerRemaining,
+          timerDuration,
+        );
+      }
+    }
+  }, [timerRemaining]);
+
   const activeCoord =
     activeModalIndex === -1
       ? origin
@@ -225,7 +304,7 @@ export default function MapView({
           />
         ))}
 
-      {/* Step markers with anchored popups */}
+      {/* Step markers */}
       {origin &&
         visibleCoords.length > 1 &&
         Array.from({ length: visibleStepCount }).map((_, i) => {
@@ -235,6 +314,7 @@ export default function MapView({
           const pinIcon = step?.pinIcon || null;
           const divIcon = makeDivIcon(pinIcon);
           const hasContent = step?.description || step?.imageUrl;
+          const isActive = activeModalIndex === i;
 
           const popup = (
             <Popup
@@ -245,7 +325,13 @@ export default function MapView({
             >
               <div
                 dangerouslySetInnerHTML={{
-                  __html: popupHTML(step, i, steps.length),
+                  __html: popupHTML(
+                    step,
+                    i,
+                    steps.length,
+                    isActive ? timerRemaining : null,
+                    isActive ? timerDuration : 0,
+                  ),
                 }}
               />
             </Popup>
@@ -303,12 +389,13 @@ export default function MapView({
         />
       )}
 
-      {/* Origin marker — clickable, with popup */}
+      {/* Origin marker */}
       {origin &&
         (() => {
           const originDivIcon = originMeta?.pinIcon
             ? makeDivIcon(originMeta.pinIcon)
             : null;
+          const isActive = activeModalIndex === -1;
           const originPopup = (
             <Popup
               offset={[0, originDivIcon ? -20 : -8]}
@@ -326,6 +413,8 @@ export default function MapView({
                     },
                     -1,
                     steps.length,
+                    isActive ? timerRemaining : null,
+                    isActive ? timerDuration : 0,
                   ),
                 }}
               />
@@ -351,7 +440,6 @@ export default function MapView({
               </Marker>
             );
           }
-
           return (
             <CircleMarker
               center={origin}
