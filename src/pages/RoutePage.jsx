@@ -6,7 +6,7 @@ import MapView from "../components/MapView";
 
 export default function RoutePage() {
   const { routeId } = useParams();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [route, setRoute] = useState(null);
   const [steps, setSteps] = useState([]);
@@ -15,6 +15,11 @@ export default function RoutePage() {
   const [forking, setForking] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeModalIndex, setActiveModalIndex] = useState(null);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   useEffect(() => {
     if (!routeId) return;
@@ -231,6 +236,20 @@ export default function RoutePage() {
           >
             {forking ? "Forking…" : "⑂ Fork Route"}
           </button>
+          {user && (
+            <button
+              onClick={handleLogout}
+              style={{
+                fontFamily: "Cinzel, serif",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                color: "var(--sand)",
+              }}
+              className="uppercase hover:text-[#F5EDD6] transition-colors"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </nav>
 

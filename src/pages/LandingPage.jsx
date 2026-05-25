@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import BalangayIcon from "../assets/balangay-icon.svg";
 
@@ -24,7 +24,13 @@ const PRESETS = [
 ];
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <div
@@ -76,18 +82,32 @@ export default function LandingPage() {
             Explore
           </Link>
           {user ? (
-            <Link
-              to="/app"
-              className="btn-stamp px-4 py-1.5"
-              style={{
-                background: "var(--parchment)",
-                border: "2px solid var(--ink)",
-                color: "var(--ink)",
-                boxShadow: "3px 3px 0px var(--ink)",
-              }}
-            >
-              Open Chart
-            </Link>
+            <div className="flex gap-4 items-center">
+              <Link
+                to="/app"
+                className="btn-stamp px-4 py-1.5"
+                style={{
+                  background: "var(--parchment)",
+                  border: "2px solid var(--ink)",
+                  color: "var(--ink)",
+                  boxShadow: "3px 3px 0px var(--ink)",
+                }}
+              >
+                Open Chart
+              </Link>
+              <button
+                onClick={handleLogout}
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: 10,
+                  letterSpacing: "0.22em",
+                  color: "var(--sand)",
+                }}
+                className="uppercase hover:text-[#F5EDD6] transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           ) : (
             <Link
               to="/auth"

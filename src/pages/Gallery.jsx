@@ -190,13 +190,19 @@ function EmptySection({ message, showCTA }) {
 }
 
 export default function Gallery() {
-  const { user } = useAuth();
+  // ← FIXED: added `profile` to the destructure
+  const { user, signOut, profile } = useAuth();
   const navigate = useNavigate();
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const TABS = [
     { id: "all", label: "All" },
@@ -244,38 +250,34 @@ export default function Gallery() {
           to="/"
           style={{
             fontFamily: "Cinzel, serif",
-
             letterSpacing: "0.15em",
-
             color: "var(--parchment)",
-
             fontSize: 15,
-
             display: "flex",
-
             alignItems: "center",
-
             gap: 8,
           }}
           className="font-bold uppercase"
         >
           <img src={BalangayIcon} alt="" style={{ width: 20, height: 20 }} />
           Balangay
-        </Link>{" "}
+        </Link>
         <div className="flex gap-5 items-center">
           {user ? (
             <>
+              {/* ← FIXED: uses profile.username from AuthContext instead of guessing */}
               <Link
-                to={`/u/${user.user_metadata?.preferred_username || user.email?.split("@")[0]}`}
+                to={profile?.username ? `/u/${profile.username}` : "#"}
                 style={{
                   fontFamily: "Cinzel, serif",
                   fontSize: 9,
                   letterSpacing: "0.18em",
-                  color: "var(--sand)",
+                  color: profile?.username ? "var(--sand)" : "var(--taupe)",
+                  pointerEvents: profile?.username ? "auto" : "none",
                 }}
                 className="uppercase hover:text-[#F5EDD6] transition-colors"
               >
-                My Profile
+                {profile?.username ? "My Profile" : "Loading…"}
               </Link>
               <Link
                 to="/app"
@@ -289,6 +291,18 @@ export default function Gallery() {
               >
                 New Route
               </Link>
+              <button
+                onClick={handleLogout}
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: 9,
+                  letterSpacing: "0.18em",
+                  color: "var(--sand)",
+                }}
+                className="uppercase hover:text-[#F5EDD6] transition-colors"
+              >
+                Sign Out
+              </button>
             </>
           ) : (
             <>

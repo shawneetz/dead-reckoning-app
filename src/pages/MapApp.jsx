@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import StepForm from "../components/StepForm";
 import StepList from "../components/StepList";
@@ -16,7 +16,8 @@ import BalangayIcon from "../assets/balangay-icon.svg";
 
 export default function MapApp() {
   const { routeId } = useParams();
-  const { user } = useAuth();
+  const { user, signOut, inactivityWarning } = useAuth();
+  const navigate = useNavigate();
 
   const [steps, setSteps] = useState([]);
   const [history, setHistory] = useState([]);
@@ -44,13 +45,16 @@ export default function MapApp() {
   const timerStartRef = useRef(null);
   const timerDurationRef = useRef(0);
   const intervalRef = useRef(null);
-  const isResettingRef = useRef(false); // guards all async callbacks against post-reset firing
-  const stepsRef = useRef(steps); // keeps interval closure in sync with latest steps
+  const isResettingRef = useRef(false);
+  const stepsRef = useRef(steps);
+  const originMetaRef = useRef(originMeta);
 
-  // Keep stepsRef current
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
+  useEffect(() => {
+    originMetaRef.current = originMeta;
+  }, [originMeta]);
 
   const stats = calcStats(steps, origin);
   const {
@@ -68,7 +72,6 @@ export default function MapApp() {
 
   const isOwner = user && savedRoute?.user_id === user.id;
 
-  // Load route from URL param
   useEffect(() => {
     if (!routeId) return;
     loadRoute(routeId)
@@ -111,12 +114,26 @@ export default function MapApp() {
     setRedoStack((r) => r.slice(0, -1));
   }
 
+  // ── RESET ────────────────────────────────────────────────────────
+  // Set the guard flag synchronously FIRST, then cancel all timers,
+  // then batch all state resets. The flag stops any in-flight callback
+  // from touching state after we've cleared it.
   function resetAll() {
-    // Set flag FIRST — all in-flight callbacks check this before touching state
     isResettingRef.current = true;
+
+    // Cancel every async operation immediately
     clearInterval(intervalRef.current);
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
+
+    // Null out refs so stale callbacks have nothing to reference
+    intervalRef.current = null;
+    autoResumeRef.current = null;
+    timerTickRef.current = null;
+    timerStartRef.current = null;
+    timerDurationRef.current = 0;
+
+    // Batch all state resets
     setSteps([]);
     setHistory([]);
     setRedoStack([]);
@@ -129,15 +146,21 @@ export default function MapApp() {
     setActiveModalIndex(null);
     setPausedByUser(false);
     setTimerRemaining(null);
-    // Clear flag after React flushes all state updates
-    setTimeout(() => {
-      isResettingRef.current = false;
-    }, 0);
+
+    // Clear the guard after React has flushed the state updates
+    // (two frames is enough — one for React batching, one for effects)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isResettingRef.current = false;
+      });
+    });
   }
 
+  // ── TIMER ────────────────────────────────────────────────────────
   function startAutoTimer(seconds, onComplete) {
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
+
     timerDurationRef.current = seconds;
     timerStartRef.current = Date.now();
     setTimerRemaining(seconds);
@@ -153,7 +176,7 @@ export default function MapApp() {
     }, 100);
 
     autoResumeRef.current = setTimeout(() => {
-      if (isResettingRef.current) return; // bail if reset fired during countdown
+      if (isResettingRef.current) return;
       clearInterval(timerTickRef.current);
       setTimerRemaining(null);
       onComplete();
@@ -169,18 +192,23 @@ export default function MapApp() {
     return remaining;
   }
 
-  function openStepPopup(stepIndex, { keepPlaying = false } = {}) {
-    if (isResettingRef.current) return; // bail if reset fired
+  // ── POPUP ────────────────────────────────────────────────────────
+  function openStepPopup(stepIndex) {
+    if (isResettingRef.current) return;
+
     const step =
       stepIndex === -1
-        ? { ...originMeta, bearing: null, distance: null }
-        : stepsRef.current[stepIndex]; // use ref, not stale closure
+        ? { ...originMetaRef.current, bearing: null, distance: null }
+        : stepsRef.current[stepIndex];
     if (!step) return;
+
     setActiveModalIndex(stepIndex);
-    if (step.duration > 0) {
+
+    const dur = step.duration ?? 0;
+    if (dur > 0) {
       setIsPlaying(true);
       setPausedByUser(false);
-      startAutoTimer(step.duration, () => {
+      startAutoTimer(dur, () => {
         if (isResettingRef.current) return;
         setActiveModalIndex(null);
         setTimerRemaining(null);
@@ -192,21 +220,23 @@ export default function MapApp() {
     }
   }
 
+  // ── INTERVAL ─────────────────────────────────────────────────────
   function startInterval(fromIndex) {
-    if (isResettingRef.current) return; // bail if reset fired
-    isResettingRef.current = false; // ensure clean state for fresh playback
+    if (isResettingRef.current) return;
+
     clearInterval(intervalRef.current);
     setIsPlaying(true);
     setPausedByUser(false);
+
     intervalRef.current = setInterval(() => {
       if (isResettingRef.current) {
-        // bail on any mid-tick reset
         clearInterval(intervalRef.current);
         return;
       }
       setPlayIndex((i) => {
+        if (isResettingRef.current) return i; // extra guard inside setState
         const next = i + 1;
-        const currentSteps = stepsRef.current; // always read latest steps
+        const currentSteps = stepsRef.current;
         if (next > currentSteps.length) {
           clearInterval(intervalRef.current);
           setIsPlaying(false);
@@ -215,19 +245,24 @@ export default function MapApp() {
         const arrivedStep = currentSteps[next - 1];
         if (arrivedStep?.description || arrivedStep?.imageUrl) {
           clearInterval(intervalRef.current);
-          openStepPopup(next - 1, { keepPlaying: true });
+          // Schedule popup outside the setState callback to avoid nesting updates
+          setTimeout(() => {
+            if (!isResettingRef.current) openStepPopup(next - 1);
+          }, 0);
         }
         return next;
       });
     }, 600);
   }
 
+  // ── PLAYBACK CONTROLS ────────────────────────────────────────────
   function handlePlay() {
     if (!steps.length) return;
     setHasStarted(true);
+
     if (originMeta.description && playIndex === 0) {
       setPlayIndex(0);
-      openStepPopup(-1, { keepPlaying: true });
+      openStepPopup(-1);
       return;
     }
     const startIndex = playIndex >= steps.length ? 0 : playIndex;
@@ -235,7 +270,7 @@ export default function MapApp() {
     const firstStep = steps[startIndex];
     if (startIndex === 0 && (firstStep?.description || firstStep?.imageUrl)) {
       setPlayIndex(1);
-      openStepPopup(0, { keepPlaying: true });
+      openStepPopup(0);
       return;
     }
     startInterval(startIndex);
@@ -278,12 +313,15 @@ export default function MapApp() {
 
   function handleLoadRoute(route) {
     resetAll();
-    setTimeout(() => {
-      setOrigin(route.origin);
-      setOriginMeta(route.originMeta);
-      setSteps(route.steps);
-      setOriginConfirmed(true);
-    }, 50);
+    // Wait for reset to propagate before loading new data
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setOrigin(route.origin);
+        setOriginMeta(route.originMeta);
+        setSteps(route.steps);
+        setOriginConfirmed(true);
+      });
+    });
   }
 
   async function handleDeleteRoute() {
@@ -300,6 +338,12 @@ export default function MapApp() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleLogout() {
+    resetAll();
+    await signOut();
+    navigate("/");
   }
 
   function handleMapClick(latlng) {
@@ -415,39 +459,79 @@ export default function MapApp() {
             </p>
           </div>
 
-          {user &&
-            originConfirmed &&
-            steps.length > 0 &&
-            (atRouteLimit ? (
-              <span
+          <div className="flex items-center gap-3">
+            {user && (
+              <button
+                onClick={handleLogout}
                 style={{
                   fontFamily: "Cinzel, serif",
-                  fontSize: 7,
+                  fontSize: 8,
                   letterSpacing: "0.15em",
-                  color: "#7A1A1A",
-                  border: "1px solid #7A1A1A",
-                  padding: "3px 6px",
+                  color: "var(--sand)",
                 }}
-                className="uppercase shrink-0"
+                className="uppercase hover:opacity-70 transition-opacity"
               >
-                Limit reached
-              </span>
-            ) : (
-              <button
-                onClick={() => setShowSave(true)}
-                className="btn-stamp px-3 py-1.5"
-                style={{
-                  background: "var(--parchment)",
-                  border: "2px solid var(--ink)",
-                  color: "var(--ink)",
-                  boxShadow: "2px 2px 0px var(--ink)",
-                  fontSize: 9,
-                }}
-              >
-                {savedRoute?.id ? "Update" : "Save"}
+                Sign Out
               </button>
-            ))}
+            )}
+            {user &&
+              originConfirmed &&
+              steps.length > 0 &&
+              (atRouteLimit ? (
+                <span
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.15em",
+                    color: "#7A1A1A",
+                    border: "1px solid #7A1A1A",
+                    padding: "3px 6px",
+                  }}
+                  className="uppercase shrink-0"
+                >
+                  Limit reached
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowSave(true)}
+                  className="btn-stamp px-3 py-1.5"
+                  style={{
+                    background: "var(--parchment)",
+                    border: "2px solid var(--ink)",
+                    color: "var(--ink)",
+                    boxShadow: "2px 2px 0px var(--ink)",
+                    fontSize: 9,
+                  }}
+                >
+                  {savedRoute?.id ? "Update" : "Save"}
+                </button>
+              ))}
+          </div>
         </div>
+
+        {/* Inactivity Warning */}
+        {inactivityWarning && (
+          <div
+            className="px-4 py-2 flex-shrink-0"
+            style={{
+              background: "#F4A460",
+              borderBottom: "1px solid var(--ink)",
+              animation: "blink 1s infinite",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 12,
+                color: "var(--ink)",
+                fontStyle: "italic",
+                fontWeight: "bold",
+              }}
+            >
+              ⚠ You will be logged out in 1 minute due to inactivity.
+            </p>
+          </div>
+        )}
 
         {/* Anon nudge */}
         {!user && originConfirmed && steps.length > 0 && (

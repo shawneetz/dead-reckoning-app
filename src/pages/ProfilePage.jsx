@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import BalangayIcon from "../assets/balangay-icon.svg";
@@ -84,11 +84,17 @@ function RouteCard({ route }) {
 
 export default function ProfilePage() {
   const { username } = useParams();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, signOut } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -207,6 +213,20 @@ export default function ProfilePage() {
           >
             {currentUser ? "New Route" : "Try It"}
           </Link>
+          {currentUser && (
+            <button
+              onClick={handleLogout}
+              style={{
+                fontFamily: "Cinzel, serif",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                color: "var(--sand)",
+              }}
+              className="uppercase hover:text-[#F5EDD6] transition-colors"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </nav>
 
