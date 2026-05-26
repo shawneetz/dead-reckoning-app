@@ -6,7 +6,7 @@ import MapView from "../components/MapView";
 
 export default function RoutePage() {
   const { routeId } = useParams();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [route, setRoute] = useState(null);
   const [steps, setSteps] = useState([]);
@@ -15,6 +15,11 @@ export default function RoutePage() {
   const [forking, setForking] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeModalIndex, setActiveModalIndex] = useState(null);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   useEffect(() => {
     if (!routeId) return;
@@ -156,7 +161,6 @@ export default function RoutePage() {
         ? "Place"
         : null;
 
-  // Reconstruct originMeta from DB fields so the origin popup works
   const originMeta = {
     label: route.origin_label || "",
     description: route.origin_description || "",
@@ -199,7 +203,7 @@ export default function RoutePage() {
               letterSpacing: "0.18em",
               color: "var(--sand)",
             }}
-            className="uppercase hover:text-[#F5EDD6] transition-colors"
+            className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 px-2 py-1 rounded transition-all"
           >
             New Route
           </Link>
@@ -231,6 +235,20 @@ export default function RoutePage() {
           >
             {forking ? "Forking…" : "⑂ Fork Route"}
           </button>
+          {user && (
+            <button
+              onClick={handleLogout}
+              style={{
+                fontFamily: "Cinzel, serif",
+                fontSize: 9,
+                letterSpacing: "0.18em",
+                color: "var(--sand)",
+              }}
+              className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 px-2 py-1 rounded transition-all"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </nav>
 

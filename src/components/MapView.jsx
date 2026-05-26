@@ -39,6 +39,60 @@ function PanToCoord({ coord }) {
   return null;
 }
 
+// After a popup opens, translate the entire .leaflet-popup element so the card
+// sits centered in the map container. The tip still visually connects to the
+// marker — it just gets carried along by the CSS transform.
+function PopupCenterer({ activeModalIndex }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (activeModalIndex === null || activeModalIndex === undefined) return;
+
+    // Wait for Leaflet to finish positioning the popup in the DOM
+    const id = setTimeout(() => {
+      const mapContainer = map.getContainer();
+      const popupEl = mapContainer.querySelector(".leaflet-popup");
+      if (!popupEl) return;
+
+      const wrapper = popupEl.querySelector(".leaflet-popup-content-wrapper");
+      if (!wrapper) return;
+
+      const mapRect = mapContainer.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+
+      // Map center in px (the map container already accounts for the sidebar)
+      const mapCenterX = mapRect.width / 2;
+      const mapCenterY = mapRect.height / 2;
+
+      // Current center of the wrapper relative to the map container
+      const wrapperCenterX =
+        wrapperRect.left - mapRect.left + wrapperRect.width / 2;
+      const wrapperCenterY =
+        wrapperRect.top - mapRect.top + wrapperRect.height / 2;
+
+      const dx = mapCenterX - wrapperCenterX;
+      const dy = mapCenterY - wrapperCenterY;
+
+      popupEl.style.transform = `translate(${dx}px, ${dy}px)`;
+      popupEl.style.transition = "transform 0.2s ease";
+    }, 80);
+
+    return () => clearTimeout(id);
+  }, [activeModalIndex, map]);
+
+  // Clear transform when no popup is active
+  useEffect(() => {
+    if (activeModalIndex !== null && activeModalIndex !== undefined) return;
+    const popupEl = map.getContainer().querySelector(".leaflet-popup");
+    if (popupEl) {
+      popupEl.style.transform = "";
+      popupEl.style.transition = "";
+    }
+  }, [activeModalIndex, map]);
+
+  return null;
+}
+
 function makeDivIcon(pinIcon) {
   if (!pinIcon) return null;
   if (pinIcon.type === "default" && pinIcon.emoji) {
@@ -77,12 +131,11 @@ function popupHTML(step, index, total, timerRemaining, timerDuration) {
   const timerSec = hasTimer ? Math.ceil(timerRemaining) : 0;
 
   return `
-    <div style="font-family:'EB Garamond',Garamond,serif;min-width:220px;max-width:300px;">
+    <div style="font-family:'EB Garamond',Garamond,serif;min-width:180px;max-width:260px;">
 
       ${
         hasTimer
           ? `
-        <!-- Timer progress bar -->
         <div style="height:4px;background:#D8C5A7;margin-bottom:0;position:relative;overflow:hidden;">
           <div style="
             position:absolute;top:0;right:0;
@@ -96,15 +149,14 @@ function popupHTML(step, index, total, timerRemaining, timerDuration) {
           : ""
       }
 
-      <div style="padding:14px 16px 14px;">
+      <div style="padding:12px 14px 12px;">
 
-        <!-- Step pill + timer badge -->
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
           <div style="
             font-family:'Cinzel','Palatino Linotype',serif;
-            font-size:8px;letter-spacing:0.22em;
+            font-size:7px;letter-spacing:0.22em;
             color:#F5EDD6;background:#5C3A1E;
-            padding:3px 10px;border:1px solid #2C1810;
+            padding:2px 8px;border:1px solid #2C1810;
             text-transform:uppercase;
           ">${isOrigin ? "START" : `STEP ${index + 1}${total ? ` OF ${total}` : ""}`}</div>
 
@@ -112,11 +164,11 @@ function popupHTML(step, index, total, timerRemaining, timerDuration) {
             hasTimer
               ? `
             <div style="
-              font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.15em;
+              font-family:'Cinzel',serif;font-size:8px;letter-spacing:0.15em;
               color:${isUrgent ? "#F5EDD6" : "#7A6B3C"};
               background:${isUrgent ? "#7A1A1A" : "transparent"};
               border:1px solid ${isUrgent ? "#7A1A1A" : "#C4A35A"};
-              padding:2px 8px;
+              padding:2px 7px;
               transition:all 0.3s;
             ">${timerSec}s</div>
           `
@@ -124,36 +176,34 @@ function popupHTML(step, index, total, timerRemaining, timerDuration) {
           }
         </div>
 
-        <!-- Title -->
         <div style="
-          font-family:'Cinzel',serif;font-size:14px;font-weight:700;
+          font-family:'Cinzel',serif;font-size:12px;font-weight:700;
           color:#2C1810;letter-spacing:0.05em;text-transform:uppercase;
-          line-height:1.3;margin-bottom:${hasDesc ? "8px" : "10px"};
+          line-height:1.3;margin-bottom:${hasDesc ? "7px" : "8px"};
         ">${title}</div>
 
         ${
           hasDesc
             ? `
-          <div style="border-top:3px double #B8986A;margin-bottom:8px;"></div>
-          <div style="font-size:15px;color:#5C3A1E;line-height:1.65;margin-bottom:10px;">
+          <div style="border-top:3px double #B8986A;margin-bottom:7px;"></div>
+          <div style="font-size:13px;color:#5C3A1E;line-height:1.6;margin-bottom:8px;">
             ${step.description}
           </div>
         `
             : ""
         }
 
-        <!-- Stats row -->
-        <div style="border-top:1px solid #C9C3B7;padding-top:8px;display:flex;gap:20px;">
+        <div style="border-top:1px solid #C9C3B7;padding-top:7px;display:flex;gap:16px;">
           ${
             !isOrigin
               ? `
             <div>
-              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Bearing</div>
-              <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.bearing}°</div>
+              <div style="font-family:'Cinzel',serif;font-size:6px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Bearing</div>
+              <div style="font-size:14px;font-weight:500;color:#2C1810;">${step.bearing}°</div>
             </div>
             <div>
-              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Distance</div>
-              <div style="font-size:16px;font-weight:500;color:#2C1810;">${step.distance}m</div>
+              <div style="font-family:'Cinzel',serif;font-size:6px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Distance</div>
+              <div style="font-size:14px;font-weight:500;color:#2C1810;">${step.distance}m</div>
             </div>
           `
               : ""
@@ -162,8 +212,8 @@ function popupHTML(step, index, total, timerRemaining, timerDuration) {
             hasTimer
               ? `
             <div>
-              <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Auto-close</div>
-              <div style="font-size:16px;font-weight:500;color:${isUrgent ? "#7A1A1A" : "#2C1810"};">${timerDuration}s</div>
+              <div style="font-family:'Cinzel',serif;font-size:6px;letter-spacing:0.22em;color:#7A6B3C;text-transform:uppercase;margin-bottom:2px">Auto-close</div>
+              <div style="font-size:14px;font-weight:500;color:${isUrgent ? "#7A1A1A" : "#2C1810"};">${timerDuration}s</div>
             </div>
           `
               : ""
@@ -222,12 +272,7 @@ export default function MapView({
     }, 60);
   }, [activeModalIndex]);
 
-  // Update popup content when timer ticks — re-render the popup HTML in place
-  const activeRef =
-    activeModalIndex === -1
-      ? originRef
-      : { current: markerRefs.current[activeModalIndex] };
-
+  // Update popup content when timer ticks
   useEffect(() => {
     if (activeModalIndex === null || timerRemaining === null) return;
     const ref =
@@ -273,6 +318,7 @@ export default function MapView({
       <MapClickHandler onMapClick={onMapClick} />
       <FlyToStep coord={finalCoord} isPlaying={isPlaying} />
       {activeCoord && <PanToCoord coord={activeCoord} />}
+      <PopupCenterer activeModalIndex={activeModalIndex} />
 
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="OpenStreetMap">
@@ -320,7 +366,7 @@ export default function MapView({
             <Popup
               offset={[0, divIcon ? -20 : -8]}
               closeButton={true}
-              autoPan={true}
+              autoPan={false}
               eventHandlers={{ remove: () => onPopupClose?.(i) }}
             >
               <div
@@ -400,7 +446,7 @@ export default function MapView({
             <Popup
               offset={[0, originDivIcon ? -20 : -8]}
               closeButton={true}
-              autoPan={true}
+              autoPan={false}
               eventHandlers={{ remove: () => onPopupClose?.(-1) }}
             >
               <div

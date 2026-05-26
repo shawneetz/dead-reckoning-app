@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import MapView from "../components/MapView";
 import StepForm from "../components/StepForm";
 import StepList from "../components/StepList";
@@ -16,7 +16,8 @@ import BalangayIcon from "../assets/balangay-icon.svg";
 
 export default function MapApp() {
   const { routeId } = useParams();
-  const { user } = useAuth();
+  const { user, signOut, inactivityWarning } = useAuth();
+  const navigate = useNavigate();
 
   const [steps, setSteps] = useState([]);
   const [history, setHistory] = useState([]);
@@ -44,13 +45,16 @@ export default function MapApp() {
   const timerStartRef = useRef(null);
   const timerDurationRef = useRef(0);
   const intervalRef = useRef(null);
-  const isResettingRef = useRef(false); // guards all async callbacks against post-reset firing
-  const stepsRef = useRef(steps); // keeps interval closure in sync with latest steps
+  const isResettingRef = useRef(false);
+  const stepsRef = useRef(steps);
+  const originMetaRef = useRef(originMeta);
 
-  // Keep stepsRef current
   useEffect(() => {
     stepsRef.current = steps;
   }, [steps]);
+  useEffect(() => {
+    originMetaRef.current = originMeta;
+  }, [originMeta]);
 
   const stats = calcStats(steps, origin);
   const {
@@ -68,7 +72,6 @@ export default function MapApp() {
 
   const isOwner = user && savedRoute?.user_id === user.id;
 
-  // Load route from URL param
   useEffect(() => {
     if (!routeId) return;
     loadRoute(routeId)
@@ -112,11 +115,15 @@ export default function MapApp() {
   }
 
   function resetAll() {
-    // Set flag FIRST — all in-flight callbacks check this before touching state
     isResettingRef.current = true;
     clearInterval(intervalRef.current);
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
+    intervalRef.current = null;
+    autoResumeRef.current = null;
+    timerTickRef.current = null;
+    timerStartRef.current = null;
+    timerDurationRef.current = 0;
     setSteps([]);
     setHistory([]);
     setRedoStack([]);
@@ -129,10 +136,11 @@ export default function MapApp() {
     setActiveModalIndex(null);
     setPausedByUser(false);
     setTimerRemaining(null);
-    // Clear flag after React flushes all state updates
-    setTimeout(() => {
-      isResettingRef.current = false;
-    }, 0);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isResettingRef.current = false;
+      });
+    });
   }
 
   function startAutoTimer(seconds, onComplete) {
@@ -141,7 +149,6 @@ export default function MapApp() {
     timerDurationRef.current = seconds;
     timerStartRef.current = Date.now();
     setTimerRemaining(seconds);
-
     timerTickRef.current = setInterval(() => {
       if (isResettingRef.current) {
         clearInterval(timerTickRef.current);
@@ -151,9 +158,8 @@ export default function MapApp() {
       const remaining = Math.max(0, seconds - elapsed);
       setTimerRemaining(parseFloat(remaining.toFixed(1)));
     }, 100);
-
     autoResumeRef.current = setTimeout(() => {
-      if (isResettingRef.current) return; // bail if reset fired during countdown
+      if (isResettingRef.current) return;
       clearInterval(timerTickRef.current);
       setTimerRemaining(null);
       onComplete();
@@ -169,18 +175,19 @@ export default function MapApp() {
     return remaining;
   }
 
-  function openStepPopup(stepIndex, { keepPlaying = false } = {}) {
-    if (isResettingRef.current) return; // bail if reset fired
+  function openStepPopup(stepIndex) {
+    if (isResettingRef.current) return;
     const step =
       stepIndex === -1
-        ? { ...originMeta, bearing: null, distance: null }
-        : stepsRef.current[stepIndex]; // use ref, not stale closure
+        ? { ...originMetaRef.current, bearing: null, distance: null }
+        : stepsRef.current[stepIndex];
     if (!step) return;
     setActiveModalIndex(stepIndex);
-    if (step.duration > 0) {
+    const dur = step.duration ?? 0;
+    if (dur > 0) {
       setIsPlaying(true);
       setPausedByUser(false);
-      startAutoTimer(step.duration, () => {
+      startAutoTimer(dur, () => {
         if (isResettingRef.current) return;
         setActiveModalIndex(null);
         setTimerRemaining(null);
@@ -193,20 +200,19 @@ export default function MapApp() {
   }
 
   function startInterval(fromIndex) {
-    if (isResettingRef.current) return; // bail if reset fired
-    isResettingRef.current = false; // ensure clean state for fresh playback
+    if (isResettingRef.current) return;
     clearInterval(intervalRef.current);
     setIsPlaying(true);
     setPausedByUser(false);
     intervalRef.current = setInterval(() => {
       if (isResettingRef.current) {
-        // bail on any mid-tick reset
         clearInterval(intervalRef.current);
         return;
       }
       setPlayIndex((i) => {
+        if (isResettingRef.current) return i;
         const next = i + 1;
-        const currentSteps = stepsRef.current; // always read latest steps
+        const currentSteps = stepsRef.current;
         if (next > currentSteps.length) {
           clearInterval(intervalRef.current);
           setIsPlaying(false);
@@ -215,7 +221,9 @@ export default function MapApp() {
         const arrivedStep = currentSteps[next - 1];
         if (arrivedStep?.description || arrivedStep?.imageUrl) {
           clearInterval(intervalRef.current);
-          openStepPopup(next - 1, { keepPlaying: true });
+          setTimeout(() => {
+            if (!isResettingRef.current) openStepPopup(next - 1);
+          }, 0);
         }
         return next;
       });
@@ -227,7 +235,7 @@ export default function MapApp() {
     setHasStarted(true);
     if (originMeta.description && playIndex === 0) {
       setPlayIndex(0);
-      openStepPopup(-1, { keepPlaying: true });
+      openStepPopup(-1);
       return;
     }
     const startIndex = playIndex >= steps.length ? 0 : playIndex;
@@ -235,7 +243,7 @@ export default function MapApp() {
     const firstStep = steps[startIndex];
     if (startIndex === 0 && (firstStep?.description || firstStep?.imageUrl)) {
       setPlayIndex(1);
-      openStepPopup(0, { keepPlaying: true });
+      openStepPopup(0);
       return;
     }
     startInterval(startIndex);
@@ -278,12 +286,14 @@ export default function MapApp() {
 
   function handleLoadRoute(route) {
     resetAll();
-    setTimeout(() => {
-      setOrigin(route.origin);
-      setOriginMeta(route.originMeta);
-      setSteps(route.steps);
-      setOriginConfirmed(true);
-    }, 50);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setOrigin(route.origin);
+        setOriginMeta(route.originMeta);
+        setSteps(route.steps);
+        setOriginConfirmed(true);
+      });
+    });
   }
 
   async function handleDeleteRoute() {
@@ -300,6 +310,12 @@ export default function MapApp() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  async function handleLogout() {
+    resetAll();
+    await signOut();
+    navigate("/");
   }
 
   function handleMapClick(latlng) {
@@ -359,6 +375,13 @@ export default function MapApp() {
   const showResume = !isPlaying || pausedByUser;
   const isResume = hasStarted && (playIndex > 0 || pausedByUser);
 
+  // Status line shown under the logo
+  const statusLine = !origin
+    ? "Click map to place start pin"
+    : !originConfirmed
+      ? "Fill in details, then confirm"
+      : `${steps.length} step${steps.length !== 1 ? "s" : ""} plotted`;
+
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {/* ── LEFT SIDEBAR ── */}
@@ -369,15 +392,16 @@ export default function MapApp() {
           borderRight: "2px solid var(--mahogany)",
         }}
       >
-        {/* Header */}
+        {/* ── HEADER ── */}
         <div
-          className="px-4 py-3 flex items-center justify-between flex-shrink-0"
+          className="flex-shrink-0"
           style={{
             background: "var(--mahogany)",
             borderBottom: "2px solid var(--ink)",
           }}
         >
-          <div>
+          {/* Top row: brand + primary action */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Link
               to="/"
               style={{
@@ -398,56 +422,122 @@ export default function MapApp() {
               />
               Balangay
             </Link>
+
+            {/* Save / limit badge — only when relevant */}
+            {user &&
+              originConfirmed &&
+              steps.length > 0 &&
+              (atRouteLimit ? (
+                <span
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.12em",
+                    color: "#FFAAAA",
+                    border: "1px solid #FFAAAA",
+                    padding: "3px 7px",
+                    opacity: 0.85,
+                  }}
+                  className="uppercase shrink-0"
+                >
+                  Route limit ({MAX_ROUTES})
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowSave(true)}
+                  className="btn-stamp px-3 py-1.5"
+                  style={{
+                    background: "var(--parchment)",
+                    border: "2px solid var(--ink)",
+                    color: "var(--ink)",
+                    boxShadow: "2px 2px 0px var(--ink)",
+                    fontSize: 9,
+                  }}
+                >
+                  {savedRoute?.id ? "Update" : "Save"}
+                </button>
+              ))}
+          </div>
+
+          {/* Status + secondary actions row */}
+          <div
+            className="flex items-center justify-between px-4 pb-2.5"
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: 6,
+            }}
+          >
             <p
               style={{
                 color: "var(--sand)",
-                fontSize: 12,
+                fontSize: 11,
                 fontFamily: "EB Garamond, serif",
                 fontStyle: "italic",
               }}
-              className="mt-0.5"
             >
-              {!origin
-                ? "Click map to place start pin"
-                : !originConfirmed
-                  ? "Fill in details, then confirm"
-                  : `${steps.length} step${steps.length !== 1 ? "s" : ""} plotted`}
+              {statusLine}
+            </p>
+
+            {/* Utility links — only when logged in */}
+            {user && (
+              <div className="flex items-center gap-1">
+                <Link
+                  to="/gallery"
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.15em",
+                    color: "rgba(216,197,167,0.7)",
+                    padding: "3px 6px",
+                  }}
+                  className="uppercase hover:text-[#F5EDD6] transition-all"
+                >
+                  Gallery
+                </Link>
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10 }}>
+                  ·
+                </span>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.15em",
+                    color: "rgba(216,197,167,0.7)",
+                    padding: "3px 6px",
+                  }}
+                  className="uppercase hover:text-[#F5EDD6] transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Inactivity Warning */}
+        {inactivityWarning && (
+          <div
+            className="px-4 py-2 flex-shrink-0"
+            style={{
+              background: "#F4A460",
+              borderBottom: "1px solid var(--ink)",
+              animation: "blink 1s infinite",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 12,
+                color: "var(--ink)",
+                fontStyle: "italic",
+                fontWeight: "bold",
+              }}
+            >
+              ⚠ You will be logged out in 1 minute due to inactivity.
             </p>
           </div>
-
-          {user &&
-            originConfirmed &&
-            steps.length > 0 &&
-            (atRouteLimit ? (
-              <span
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: 7,
-                  letterSpacing: "0.15em",
-                  color: "#7A1A1A",
-                  border: "1px solid #7A1A1A",
-                  padding: "3px 6px",
-                }}
-                className="uppercase shrink-0"
-              >
-                Limit reached
-              </span>
-            ) : (
-              <button
-                onClick={() => setShowSave(true)}
-                className="btn-stamp px-3 py-1.5"
-                style={{
-                  background: "var(--parchment)",
-                  border: "2px solid var(--ink)",
-                  color: "var(--ink)",
-                  boxShadow: "2px 2px 0px var(--ink)",
-                  fontSize: 9,
-                }}
-              >
-                {savedRoute?.id ? "Update" : "Save"}
-              </button>
-            ))}
-        </div>
+        )}
 
         {/* Anon nudge */}
         {!user && originConfirmed && steps.length > 0 && (

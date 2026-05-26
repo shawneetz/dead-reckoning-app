@@ -294,11 +294,9 @@ export const SEEDED_ROUTES = [
       duration: 5,
       pinIcon: null,
     },
-    // Main Gate: Pedro Sandoval Ave entrance, Batong Malake
     origin: [14.1655, 121.2432],
     steps: [
       {
-        // Main Gate (14.16550, 121.24320) → Baker Hall (14.16180, 121.24271)
         bearing: 187,
         distance: 415,
         label: "Main Gate → Baker Hall",
@@ -307,7 +305,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Baker Hall (14.16180, 121.24271) → Chapel (14.16472, 121.24500)
         bearing: 37,
         distance: 408,
         label: "Baker Hall → St. Therese Chapel",
@@ -316,7 +313,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Chapel (14.16472, 121.24500) → Oblation/Admin (14.16620, 121.24430)
         bearing: 335,
         distance: 181,
         label: "Chapel → Oblation Plaza",
@@ -325,7 +321,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Admin/Oblation (14.16620, 121.24430) → Umali Hall (14.16800, 121.24150)
         bearing: 304,
         distance: 362,
         label: "Oblation → DL Umali Hall",
@@ -334,7 +329,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Umali Hall (14.16800, 121.24150) → Library (14.16690, 121.24010)
         bearing: 231,
         distance: 194,
         label: "Umali Hall → Main Library",
@@ -343,7 +337,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Library (14.16690, 121.24010) → CAS (14.16280, 121.24100)
         bearing: 168,
         distance: 466,
         label: "Library → College of Arts & Sciences",
@@ -352,7 +345,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // CAS (14.16280, 121.24100) → Copeland Gym (14.15700, 121.24310)
         bearing: 161,
         distance: 684,
         label: "CAS → Copeland Gymnasium",
@@ -361,7 +353,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Copeland Gym (14.15700, 121.24310) → Main Gate (14.16550, 121.24320)
         bearing: 1,
         distance: 945,
         label: "Copeland Gym → Main Gate",
@@ -387,11 +378,9 @@ export const SEEDED_ROUTES = [
       duration: 5,
       pinIcon: null,
     },
-    // Rizal Monument: Wikipedia verified 14.581669, 120.976694
     origin: [14.581669, 120.976694],
     steps: [
       {
-        // Rizal Monument (14.581669, 120.976694) → Quirino Grandstand (14.579720, 120.974720)
         bearing: 224,
         distance: 303,
         label: "Rizal Monument → Quirino Grandstand",
@@ -400,7 +389,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Quirino Grandstand (14.579720, 120.974720) → Planetarium (14.583889, 120.978056)
         bearing: 38,
         distance: 586,
         label: "Grandstand → National Planetarium",
@@ -409,7 +397,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Planetarium (14.583889, 120.978056) → Agrifina Circle (14.584248, 120.981417)
         bearing: 84,
         distance: 364,
         label: "Planetarium → Agrifina Circle",
@@ -418,7 +405,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // Agrifina Circle (14.584248, 120.981417) → National Museum of Fine Arts (14.586900, 120.981200)
         bearing: 355,
         distance: 296,
         label: "Agrifina → National Museum of Fine Arts",
@@ -427,7 +413,6 @@ export const SEEDED_ROUTES = [
         duration: 5,
       },
       {
-        // National Museum of Fine Arts (14.586900, 120.981200) → Rizal Monument (14.581669, 120.976694)
         bearing: 220,
         distance: 757,
         label: "National Museum → Rizal Monument",
@@ -443,3 +428,11 @@ export const HISTORICAL_ROUTES = SEEDED_ROUTES.filter(
   (r) => r.category === "historical",
 );
 export const PLACE_ROUTES = SEEDED_ROUTES.filter((r) => r.category === "place");
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Legacy PRESETS shim — keeps App.jsx + Controls.jsx working without changes.
+// Maps the old string-key lookup to the new SEEDED_ROUTES array.
+// ─────────────────────────────────────────────────────────────────────────────
+export const PRESETS = Object.fromEntries(
+  SEEDED_ROUTES.map((r) => [r.id, { origin: r.origin, steps: r.steps }]),
+);
