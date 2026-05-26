@@ -24,7 +24,7 @@ const PRESETS = [
 ];
 
 export default function LandingPage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, profile } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -45,6 +45,7 @@ export default function LandingPage() {
         }}
         className="flex items-center justify-between px-6 py-3"
       >
+        {/* Brand */}
         <Link
           to="/"
           style={{
@@ -58,31 +59,56 @@ export default function LandingPage() {
           }}
           className="font-bold uppercase"
         >
-          <img
-            src={BalangayIcon}
-            alt=""
-            style={{
-              width: 20,
-              height: 20,
-            }}
-          />
+          <img src={BalangayIcon} alt="" style={{ width: 20, height: 20 }} />
           Balangay
-        </Link>{" "}
-        <div className="flex gap-6 items-center">
+        </Link>
+
+        {/* Right side */}
+        <div className="flex items-center gap-2">
+          {/* Explore — always visible */}
           <Link
             to="/gallery"
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: 10,
-              letterSpacing: "0.22em",
+              fontSize: 9,
+              letterSpacing: "0.2em",
               color: "var(--sand)",
+              padding: "6px 12px",
             }}
-            className="uppercase hover:text-[#F5EDD6] transition-colors"
+            className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 transition-all"
           >
             Explore
           </Link>
+
           {user ? (
-            <div className="flex gap-4 items-center">
+            <>
+              {/* Profile link */}
+              <Link
+                to={profile?.username ? `/u/${profile.username}` : "#"}
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: 9,
+                  letterSpacing: "0.2em",
+                  color: profile?.username ? "var(--sand)" : "var(--taupe)",
+                  pointerEvents: profile?.username ? "auto" : "none",
+                  padding: "6px 12px",
+                }}
+                className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 transition-all"
+              >
+                {profile?.username ? profile.username : "…"}
+              </Link>
+
+              {/* Divider */}
+              <div
+                style={{
+                  width: 1,
+                  height: 16,
+                  background: "rgba(255,255,255,0.2)",
+                  margin: "0 4px",
+                }}
+              />
+
+              {/* Primary CTA */}
               <Link
                 to="/app"
                 className="btn-stamp px-4 py-1.5"
@@ -90,37 +116,58 @@ export default function LandingPage() {
                   background: "var(--parchment)",
                   border: "2px solid var(--ink)",
                   color: "var(--ink)",
-                  boxShadow: "3px 3px 0px var(--ink)",
+                  boxShadow: "2px 2px 0px var(--ink)",
+                  fontSize: 9,
                 }}
               >
                 Open Chart
               </Link>
+
+              {/* Sign out — subtle */}
               <button
                 onClick={handleLogout}
                 style={{
                   fontFamily: "Cinzel, serif",
-                  fontSize: 10,
-                  letterSpacing: "0.22em",
-                  color: "var(--sand)",
+                  fontSize: 9,
+                  letterSpacing: "0.15em",
+                  color: "rgba(216,197,167,0.6)",
+                  padding: "6px 8px",
                 }}
-                className="uppercase hover:text-[#F5EDD6] transition-colors"
+                className="uppercase hover:text-[#F5EDD6] transition-all"
               >
                 Sign Out
               </button>
-            </div>
+            </>
           ) : (
-            <Link
-              to="/auth"
-              style={{
-                fontFamily: "Cinzel, serif",
-                fontSize: 10,
-                letterSpacing: "0.22em",
-                color: "var(--sand)",
-              }}
-              className="uppercase hover:text-[#F5EDD6] transition-colors"
-            >
-              Sign In
-            </Link>
+            <>
+              <Link
+                to="/auth"
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: 9,
+                  letterSpacing: "0.2em",
+                  color: "var(--sand)",
+                  padding: "6px 12px",
+                }}
+                className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 transition-all"
+              >
+                Sign In
+              </Link>
+
+              <Link
+                to="/app"
+                className="btn-stamp px-4 py-1.5"
+                style={{
+                  background: "var(--parchment)",
+                  border: "2px solid var(--ink)",
+                  color: "var(--ink)",
+                  boxShadow: "2px 2px 0px var(--ink)",
+                  fontSize: 9,
+                }}
+              >
+                Try It Free
+              </Link>
+            </>
           )}
         </div>
       </nav>
@@ -150,7 +197,6 @@ export default function LandingPage() {
           Dead Reckoning Interactive Simulation
         </p>
 
-        {/* Double rule */}
         <div
           style={{ borderTop: "3px double var(--leather)" }}
           className="my-8 mx-auto w-32"

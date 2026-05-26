@@ -114,26 +114,16 @@ export default function MapApp() {
     setRedoStack((r) => r.slice(0, -1));
   }
 
-  // ── RESET ────────────────────────────────────────────────────────
-  // Set the guard flag synchronously FIRST, then cancel all timers,
-  // then batch all state resets. The flag stops any in-flight callback
-  // from touching state after we've cleared it.
   function resetAll() {
     isResettingRef.current = true;
-
-    // Cancel every async operation immediately
     clearInterval(intervalRef.current);
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
-
-    // Null out refs so stale callbacks have nothing to reference
     intervalRef.current = null;
     autoResumeRef.current = null;
     timerTickRef.current = null;
     timerStartRef.current = null;
     timerDurationRef.current = 0;
-
-    // Batch all state resets
     setSteps([]);
     setHistory([]);
     setRedoStack([]);
@@ -146,9 +136,6 @@ export default function MapApp() {
     setActiveModalIndex(null);
     setPausedByUser(false);
     setTimerRemaining(null);
-
-    // Clear the guard after React has flushed the state updates
-    // (two frames is enough — one for React batching, one for effects)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         isResettingRef.current = false;
@@ -156,15 +143,12 @@ export default function MapApp() {
     });
   }
 
-  // ── TIMER ────────────────────────────────────────────────────────
   function startAutoTimer(seconds, onComplete) {
     clearTimeout(autoResumeRef.current);
     clearInterval(timerTickRef.current);
-
     timerDurationRef.current = seconds;
     timerStartRef.current = Date.now();
     setTimerRemaining(seconds);
-
     timerTickRef.current = setInterval(() => {
       if (isResettingRef.current) {
         clearInterval(timerTickRef.current);
@@ -174,7 +158,6 @@ export default function MapApp() {
       const remaining = Math.max(0, seconds - elapsed);
       setTimerRemaining(parseFloat(remaining.toFixed(1)));
     }, 100);
-
     autoResumeRef.current = setTimeout(() => {
       if (isResettingRef.current) return;
       clearInterval(timerTickRef.current);
@@ -192,18 +175,14 @@ export default function MapApp() {
     return remaining;
   }
 
-  // ── POPUP ────────────────────────────────────────────────────────
   function openStepPopup(stepIndex) {
     if (isResettingRef.current) return;
-
     const step =
       stepIndex === -1
         ? { ...originMetaRef.current, bearing: null, distance: null }
         : stepsRef.current[stepIndex];
     if (!step) return;
-
     setActiveModalIndex(stepIndex);
-
     const dur = step.duration ?? 0;
     if (dur > 0) {
       setIsPlaying(true);
@@ -220,21 +199,18 @@ export default function MapApp() {
     }
   }
 
-  // ── INTERVAL ─────────────────────────────────────────────────────
   function startInterval(fromIndex) {
     if (isResettingRef.current) return;
-
     clearInterval(intervalRef.current);
     setIsPlaying(true);
     setPausedByUser(false);
-
     intervalRef.current = setInterval(() => {
       if (isResettingRef.current) {
         clearInterval(intervalRef.current);
         return;
       }
       setPlayIndex((i) => {
-        if (isResettingRef.current) return i; // extra guard inside setState
+        if (isResettingRef.current) return i;
         const next = i + 1;
         const currentSteps = stepsRef.current;
         if (next > currentSteps.length) {
@@ -245,7 +221,6 @@ export default function MapApp() {
         const arrivedStep = currentSteps[next - 1];
         if (arrivedStep?.description || arrivedStep?.imageUrl) {
           clearInterval(intervalRef.current);
-          // Schedule popup outside the setState callback to avoid nesting updates
           setTimeout(() => {
             if (!isResettingRef.current) openStepPopup(next - 1);
           }, 0);
@@ -255,11 +230,9 @@ export default function MapApp() {
     }, 600);
   }
 
-  // ── PLAYBACK CONTROLS ────────────────────────────────────────────
   function handlePlay() {
     if (!steps.length) return;
     setHasStarted(true);
-
     if (originMeta.description && playIndex === 0) {
       setPlayIndex(0);
       openStepPopup(-1);
@@ -313,7 +286,6 @@ export default function MapApp() {
 
   function handleLoadRoute(route) {
     resetAll();
-    // Wait for reset to propagate before loading new data
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setOrigin(route.origin);
@@ -403,6 +375,13 @@ export default function MapApp() {
   const showResume = !isPlaying || pausedByUser;
   const isResume = hasStarted && (playIndex > 0 || pausedByUser);
 
+  // Status line shown under the logo
+  const statusLine = !origin
+    ? "Click map to place start pin"
+    : !originConfirmed
+      ? "Fill in details, then confirm"
+      : `${steps.length} step${steps.length !== 1 ? "s" : ""} plotted`;
+
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {/* ── LEFT SIDEBAR ── */}
@@ -413,15 +392,16 @@ export default function MapApp() {
           borderRight: "2px solid var(--mahogany)",
         }}
       >
-        {/* Header */}
+        {/* ── HEADER ── */}
         <div
-          className="px-4 py-3 flex items-center justify-between flex-shrink-0"
+          className="flex-shrink-0"
           style={{
             background: "var(--mahogany)",
             borderBottom: "2px solid var(--ink)",
           }}
         >
-          <div>
+          {/* Top row: brand + primary action */}
+          <div className="flex items-center justify-between px-4 pt-3 pb-2">
             <Link
               to="/"
               style={{
@@ -442,38 +422,8 @@ export default function MapApp() {
               />
               Balangay
             </Link>
-            <p
-              style={{
-                color: "var(--sand)",
-                fontSize: 12,
-                fontFamily: "EB Garamond, serif",
-                fontStyle: "italic",
-              }}
-              className="mt-0.5"
-            >
-              {!origin
-                ? "Click map to place start pin"
-                : !originConfirmed
-                  ? "Fill in details, then confirm"
-                  : `${steps.length} step${steps.length !== 1 ? "s" : ""} plotted`}
-            </p>
-          </div>
 
-          <div className="flex items-center gap-3">
-            {user && (
-              <button
-                onClick={handleLogout}
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: 8,
-                  letterSpacing: "0.15em",
-                  color: "var(--sand)",
-                }}
-                className="uppercase hover:opacity-70 transition-opacity"
-              >
-                Sign Out
-              </button>
-            )}
+            {/* Save / limit badge — only when relevant */}
             {user &&
               originConfirmed &&
               steps.length > 0 &&
@@ -482,14 +432,15 @@ export default function MapApp() {
                   style={{
                     fontFamily: "Cinzel, serif",
                     fontSize: 7,
-                    letterSpacing: "0.15em",
-                    color: "#7A1A1A",
-                    border: "1px solid #7A1A1A",
-                    padding: "3px 6px",
+                    letterSpacing: "0.12em",
+                    color: "#FFAAAA",
+                    border: "1px solid #FFAAAA",
+                    padding: "3px 7px",
+                    opacity: 0.85,
                   }}
                   className="uppercase shrink-0"
                 >
-                  Limit reached
+                  Route limit ({MAX_ROUTES})
                 </span>
               ) : (
                 <button
@@ -506,6 +457,61 @@ export default function MapApp() {
                   {savedRoute?.id ? "Update" : "Save"}
                 </button>
               ))}
+          </div>
+
+          {/* Status + secondary actions row */}
+          <div
+            className="flex items-center justify-between px-4 pb-2.5"
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: 6,
+            }}
+          >
+            <p
+              style={{
+                color: "var(--sand)",
+                fontSize: 11,
+                fontFamily: "EB Garamond, serif",
+                fontStyle: "italic",
+              }}
+            >
+              {statusLine}
+            </p>
+
+            {/* Utility links — only when logged in */}
+            {user && (
+              <div className="flex items-center gap-1">
+                <Link
+                  to="/gallery"
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.15em",
+                    color: "rgba(216,197,167,0.7)",
+                    padding: "3px 6px",
+                  }}
+                  className="uppercase hover:text-[#F5EDD6] transition-all"
+                >
+                  Gallery
+                </Link>
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10 }}>
+                  ·
+                </span>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    fontFamily: "Cinzel, serif",
+                    fontSize: 7,
+                    letterSpacing: "0.15em",
+                    color: "rgba(216,197,167,0.7)",
+                    padding: "3px 6px",
+                  }}
+                  className="uppercase hover:text-[#F5EDD6] transition-all"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -69,7 +69,6 @@ function RouteCard({ route }) {
           }}
         />
       )}
-
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h2
@@ -85,7 +84,6 @@ function RouteCard({ route }) {
           </h2>
           <CategoryBadge category={route.category} />
         </div>
-
         {route.description && (
           <p
             style={{
@@ -99,7 +97,6 @@ function RouteCard({ route }) {
             {route.description}
           </p>
         )}
-
         <div
           style={{ borderTop: "1px solid var(--coolstone)" }}
           className="flex items-center justify-between pt-2 mt-2"
@@ -190,7 +187,6 @@ function EmptySection({ message, showCTA }) {
 }
 
 export default function Gallery() {
-  // ← FIXED: added `profile` to the destructure
   const { user, signOut, profile } = useAuth();
   const navigate = useNavigate();
   const [routes, setRoutes] = useState([]);
@@ -246,6 +242,7 @@ export default function Gallery() {
         }}
         className="flex items-center justify-between px-6 py-3"
       >
+        {/* Brand */}
         <Link
           to="/"
           style={{
@@ -262,10 +259,11 @@ export default function Gallery() {
           <img src={BalangayIcon} alt="" style={{ width: 20, height: 20 }} />
           Balangay
         </Link>
-        <div className="flex gap-5 items-center">
+
+        {/* Right side */}
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              {/* ← FIXED: uses profile.username from AuthContext instead of guessing */}
               <Link
                 to={profile?.username ? `/u/${profile.username}` : "#"}
                 style={{
@@ -274,11 +272,22 @@ export default function Gallery() {
                   letterSpacing: "0.18em",
                   color: profile?.username ? "var(--sand)" : "var(--taupe)",
                   pointerEvents: profile?.username ? "auto" : "none",
+                  padding: "6px 10px",
                 }}
-                className="uppercase hover:text-[#F5EDD6] transition-colors"
+                className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 transition-all"
               >
-                {profile?.username ? "My Profile" : "Loading…"}
+                {profile?.username ?? "…"}
               </Link>
+
+              <div
+                style={{
+                  width: 1,
+                  height: 16,
+                  background: "rgba(255,255,255,0.2)",
+                  margin: "0 2px",
+                }}
+              />
+
               <Link
                 to="/app"
                 className="btn-stamp px-4 py-1.5"
@@ -286,20 +295,23 @@ export default function Gallery() {
                   background: "var(--parchment)",
                   border: "2px solid var(--ink)",
                   color: "var(--ink)",
-                  boxShadow: "3px 3px 0px var(--ink)",
+                  boxShadow: "2px 2px 0px var(--ink)",
+                  fontSize: 9,
                 }}
               >
                 New Route
               </Link>
+
               <button
                 onClick={handleLogout}
                 style={{
                   fontFamily: "Cinzel, serif",
                   fontSize: 9,
-                  letterSpacing: "0.18em",
-                  color: "var(--sand)",
+                  letterSpacing: "0.15em",
+                  color: "rgba(216,197,167,0.6)",
+                  padding: "6px 8px",
                 }}
-                className="uppercase hover:text-[#F5EDD6] transition-colors"
+                className="uppercase hover:text-[#F5EDD6] transition-all"
               >
                 Sign Out
               </button>
@@ -313,11 +325,13 @@ export default function Gallery() {
                   fontSize: 9,
                   letterSpacing: "0.18em",
                   color: "var(--sand)",
+                  padding: "6px 10px",
                 }}
-                className="uppercase hover:text-[#F5EDD6] transition-colors"
+                className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 transition-all"
               >
                 Sign In
               </Link>
+
               <Link
                 to="/app"
                 className="btn-stamp px-4 py-1.5"
@@ -325,7 +339,8 @@ export default function Gallery() {
                   background: "var(--parchment)",
                   border: "2px solid var(--ink)",
                   color: "var(--ink)",
-                  boxShadow: "3px 3px 0px var(--ink)",
+                  boxShadow: "2px 2px 0px var(--ink)",
+                  fontSize: 9,
                 }}
               >
                 Try It
@@ -436,7 +451,6 @@ export default function Gallery() {
 
         {!loading && !error && (
           <>
-            {/* ALL tab */}
             {tab === "all" && (
               <>
                 {historical.length > 0 && (
@@ -452,7 +466,6 @@ export default function Gallery() {
                     </div>
                   </div>
                 )}
-
                 {places.length > 0 && (
                   <div className="mb-10">
                     <SectionHeader title="Places" count={places.length} />
@@ -463,7 +476,6 @@ export default function Gallery() {
                     </div>
                   </div>
                 )}
-
                 {publicRoutes.length > 0 && (
                   <div className="mb-10">
                     <SectionHeader
@@ -477,7 +489,6 @@ export default function Gallery() {
                     </div>
                   </div>
                 )}
-
                 {filtered.length === 0 && (
                   <EmptySection
                     message={
@@ -491,7 +502,6 @@ export default function Gallery() {
               </>
             )}
 
-            {/* HISTORICAL tab */}
             {tab === "historical" &&
               (historical.length > 0 ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -503,7 +513,6 @@ export default function Gallery() {
                 <EmptySection message="No historical routes yet." />
               ))}
 
-            {/* PLACES tab */}
             {tab === "places" &&
               (places.length > 0 ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -515,7 +524,6 @@ export default function Gallery() {
                 <EmptySection message="No place routes yet." />
               ))}
 
-            {/* PUBLIC tab */}
             {tab === "public" &&
               (publicRoutes.length > 0 ? (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

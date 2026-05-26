@@ -161,7 +161,6 @@ export default function RoutePage() {
         ? "Place"
         : null;
 
-  // Reconstruct originMeta from DB fields so the origin popup works
   const originMeta = {
     label: route.origin_label || "",
     description: route.origin_description || "",
@@ -204,7 +203,7 @@ export default function RoutePage() {
               letterSpacing: "0.18em",
               color: "var(--sand)",
             }}
-            className="uppercase hover:text-[#F5EDD6] transition-colors"
+            className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 px-2 py-1 rounded transition-all"
           >
             New Route
           </Link>
@@ -245,7 +244,7 @@ export default function RoutePage() {
                 letterSpacing: "0.18em",
                 color: "var(--sand)",
               }}
-              className="uppercase hover:text-[#F5EDD6] transition-colors"
+              className="uppercase hover:text-[#F5EDD6] hover:bg-white/10 px-2 py-1 rounded transition-all"
             >
               Sign Out
             </button>
