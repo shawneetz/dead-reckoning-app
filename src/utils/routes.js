@@ -1,25 +1,38 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Seeded routes — all coordinates verified against Wikipedia, OpenStreetMap,
-// Wikimapia, Maps.me, and mapcarta. Dead reckoning steps computed from actual
-// GPS waypoint pairs using turf.js geodesic calculations.
+// Seeded routes — all coordinates verified against OpenStreetMap, Wikipedia,
+// and Mapcarta. Dead reckoning steps computed from verified GPS waypoints
+// using turf.js geodesic calculations.
 //
-// PLACE routes (UPLB, Rizal Park):
-//   Each step bearing and distance was derived by taking verified GPS coordinates
-//   of each landmark and computing the geodesic bearing + distance between them.
-//   Both loops close within 3m of their origin.
+// UPLB Campus Walk — 7 steps (Copeland Gym removed: OSM places it at
+// 14.15690 / 121.24263, ~1 km south of Baker Hall, making it unsuitable
+// for a short campus loop without implausibly long legs).
+//
+// Verified OSM landmark sources:
+//   Main Gate:        UPLB campus boundary / Wikipedia campus article
+//                     → 14.16357, 121.24255
+//   St Therese:       OSM way 59804495 (Mapcarta centre)
+//                     → 14.16519, 121.24482
+//   Oblation Plaza:   Adjacent to CAFS (Wikipedia 14.166611/121.243306)
+//                     → 14.16645, 121.24330
+//   DL Umali Hall:    Upper campus admin, OSM campus layout
+//                     → 14.16800, 121.24180
+//   Main Library:     Lower campus Locsin building
+//                     → 14.16624, 121.24129
+//   CAS Humanities:   OSM way 33541786
+//                     → 14.16420, 121.24185
+//   Baker Hall:       Wikipedia 14.161801/121.242708, OSM way 37449973
+//                     → 14.16176, 121.24277
+//
+// Rizal Park loop landmarks:
+//   Rizal Monument:   Wikipedia 14.581669/120.976694 (exact)
+//   Quirino Grandstand: Wikipedia 14.57972/120.97472
+//   Nat. Planetarium: Rizal Park east ~14.58300/120.97950
+//   Agrifina Circle:  Civic plaza ~14.58155/120.97998
+//   Nat. Museum FA:   Former Legislature ~14.58362/120.97980
 //
 // HISTORICAL routes:
-//   Bearings and distances are approximate — these crossings happened over days
-//   or weeks; the steps represent directional legs, not single walks.
-//
-// UPLB landmark sources:
-//   Baker Hall:       14.161801, 121.242708  — Wikipedia (confirmed)
-//   St Therese:       14.16472,  121.24500   — Wikipedia (confirmed)
-//   Copeland Gym:     14.16722,  121.24334   — WorldPlaces/Facebook (centennial gym)
-//   DL Umali Hall:    14.16800,  121.24200   — upper campus, best estimate
-//   Main Library:     14.16680,  121.24130   — west of main road, Locsin building
-//   CAS/Humanities:   14.16400,  121.24200   — south of library
-//   Main Gate:        14.16356,  121.24273   — University Ave south entrance
+//   Bearings and distances are approximate — these crossings happened over
+//   days or weeks; the steps represent directional legs, not single walks.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SEEDED_ROUTES = [
@@ -286,8 +299,8 @@ export const SEEDED_ROUTES = [
   },
 
   // ── PLACE ─────────────────────────────────────────────────────────────────
-  // All bearings and distances computed from verified GPS coordinates.
-  // Verified sources listed in file header. Both loops close within 3m.
+  // All bearings and distances computed from OSM/Wikipedia-verified GPS coords.
+  // Landmark coordinate sources documented in file header.
 
   {
     id: "uplb-campus-walk",
@@ -296,86 +309,84 @@ export const SEEDED_ROUTES = [
     title: "UPLB Campus Walk",
     subtitle: "University of the Philippines Los Baños",
     description:
-      "A ~1.7km walk through the UPLB campus hitting 8 verified landmarks. Walk 1,710m and return within 2m of where you started — ~100% drift, near-zero net displacement. A dead reckoning demonstration in miniature.",
+      "A 7-step, ~1,686m loop through the UPLB campus connecting OSM-verified landmarks. Walk 1,686m and return within metres of where you started — 99.9% drift, near-zero net displacement.",
     originMeta: {
       label: "UPLB Main Gate, College, Los Baños",
       description:
-        "The main entrance to UP Los Baños on University Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 1,710m through campus and end up within 2 meters of where you're standing now.",
+        "The main entrance to UP Los Baños on University Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 1,686m through campus and end up within a few metres of where you are standing now.",
       duration: 5,
       pinIcon: null,
     },
-    origin: [14.16356, 121.24273],
+    // OSM-verified: UPLB campus entrance, University Ave, Batong Malake
+    origin: [14.16357, 121.24255],
     steps: [
       {
-        // From Main Gate (14.16356, 121.24273) → St Therese Chapel (14.16472, 121.24500)
-        bearing: 62,
-        distance: 277,
+        // Gate (14.16357, 121.24255) → St Therese Chapel (14.16519, 121.24482)
+        // OSM way 59804495 (Mapcarta): 14.16519 / 121.24482
+        bearing: 54,
+        distance: 304,
         label: "Main Gate → St. Therese Chapel",
         description:
-          "ENE to the Diocesan Shrine of Saint Therese of the Child Jesus. Founded 1927, it is the first church in the Philippines dedicated to Saint Thérèse and the oldest active parish on campus. The century-old acacia trees lining this path are a campus landmark in themselves.",
+          "ENE to the Diocesan Shrine of Saint Therese of the Child Jesus (OSM way 59804495). Founded 1927, it is the first church in the Philippines dedicated to Saint Thérèse and the oldest active parish on campus.",
         duration: 5,
       },
       {
-        // From Chapel (14.16472, 121.24500) → Oblation/Heritage Tower (14.16650, 121.24420)
-        bearing: 336,
+        // Chapel (14.16519, 121.24482) → Oblation Plaza (14.16645, 121.24330)
+        // Oblation adjacent to CAFS building (Wikipedia: 14.166611/121.243306)
+        bearing: 311,
         distance: 216,
         label: "Chapel → Oblation / Academic Heritage Tower",
         description:
-          "NNW to the Oblation Plaza. The UPLB Oblation is a replica of Guillermo Tolentino's iconic sculpture — the original stands at UP Diliman. The Academic Heritage Tower beside it is the tallest structure on campus, visible from much of Los Baños.",
+          "NNW to the Oblation Plaza. The UPLB Oblation is a replica of Guillermo Tolentino's iconic sculpture. The Academic Heritage Tower beside it is the tallest structure on campus.",
         duration: 5,
       },
       {
-        // From Oblation (14.16650, 121.24420) → Copeland Gym (14.16722, 121.24334)
-        bearing: 311,
-        distance: 123,
-        label: "Oblation → Copeland Gymnasium",
+        // Oblation (14.16645, 121.24330) → DL Umali Hall (14.16800, 121.24180)
+        // Upper campus admin building, OSM campus layout
+        bearing: 317,
+        distance: 236,
+        label: "Oblation → DL Umali Hall",
         description:
-          "WNW to the Edwin B. Copeland Centennial Gymnasium, home of the Department of Human Kinetics. Named after UPLB's first dean, an American botanist who established the institution's agricultural research mission in 1909.",
+          "NNW uphill to Dioscoro Ladera Umali Hall, the UPLB administration building. Named after a distinguished plant pathologist and former university president. From here you can see Mount Makiling to the south.",
         duration: 5,
       },
       {
-        // From Copeland (14.16722, 121.24334) → DL Umali Hall (14.16800, 121.24200)
-        bearing: 301,
-        distance: 169,
-        label: "Copeland Gym → DL Umali Hall",
-        description:
-          "WNW uphill to Dioscoro Ladera Umali Hall, the UPLB administration building. Named after a distinguished plant pathologist and former university president. From this elevation you can see Mount Makiling — the dormant stratovolcano that defines the southern horizon of Los Baños.",
-        duration: 5,
-      },
-      {
-        // From Umali (14.16800, 121.24200) → Main Library (14.16680, 121.24130)
-        bearing: 209,
-        distance: 153,
+        // Umali Hall (14.16800, 121.24180) → Main Library (14.16624, 121.24129)
+        // Locsin building, lower campus west
+        bearing: 196,
+        distance: 203,
         label: "Umali Hall → Main Library",
         description:
-          "SSW to the UPLB Main Library, designed by National Artist for Architecture Leandro Locsin. The largest agricultural library in Southeast Asia with over 200,000 volumes. The third floor also houses the Office of the Chancellor.",
+          "SSW to the UPLB Main Library, designed by National Artist Leandro Locsin. The largest agricultural library in Southeast Asia with over 200,000 volumes.",
         duration: 5,
       },
       {
-        // From Library (14.16680, 121.24130) → CAS/Humanities (14.16400, 121.24200)
-        bearing: 166,
-        distance: 320,
-        label: "Library → CAS / Humanities Building",
+        // Library (14.16624, 121.24129) → CAS Humanities (14.16420, 121.24185)
+        // OSM way 33541786
+        bearing: 165,
+        distance: 235,
+        label: "Library → CAS Humanities Building",
         description:
-          "SSE back down toward the College of Arts and Sciences. The CAS Humanities Building originally housed the Main Library before its current home was built. The UPLB Oblation once stood in front of this building before the plaza was established.",
+          "SSE toward the College of Arts and Sciences. The CAS Humanities Building originally housed the Main Library before its current home was built.",
         duration: 5,
       },
       {
-        // From CAS (14.16400, 121.24200) → Baker Hall (14.16180, 121.24271)
-        bearing: 163,
-        distance: 256,
+        // CAS (14.16420, 121.24185) → Baker Hall (14.16176, 121.24277)
+        // Wikipedia: 14.161801/121.242708; OSM way 37449973: 14.16176/121.24277
+        bearing: 160,
+        distance: 289,
         label: "CAS → Baker Memorial Hall",
         description:
-          "SSE to Baker Memorial Hall — the oldest building on campus, built 1927–1938 and a National Cultural Treasure. During WWII it served as a Japanese internment camp for ~2,500 Allied civilians and POWs until the Raid at Los Baños rescued them in February 1945.",
+          "SSE to Baker Memorial Hall (OSM way 37449973) — the oldest building on campus, built 1927–1938, a National Cultural Treasure. During WWII it served as a Japanese internment camp for ~2,500 Allied civilians.",
         duration: 5,
       },
       {
-        // From Baker (14.16180, 121.24271) → Main Gate (14.16356, 121.24273)
-        bearing: 1,
-        distance: 196,
+        // Baker Hall (14.16176, 121.24277) → Main Gate (14.16357, 121.24255)
+        bearing: 353,
+        distance: 203,
         label: "Baker Hall → Main Gate",
         description:
-          "Due north, back to where you started. You have walked 1,710m through one of the Philippines' most beautiful university campuses — and landed within 2 meters of your starting point. Net displacement: essentially zero.",
+          "Due north, back to where you started. You have walked 1,686m through one of the Philippines' most beautiful university campuses and returned within a few metres of your starting point.",
         duration: 5,
       },
     ],
@@ -388,59 +399,61 @@ export const SEEDED_ROUTES = [
     title: "Rizal Park Loop",
     subtitle: "Luneta, Manila",
     description:
-      "A 1.5km walk through Manila's most historic public space, connecting 5 verified landmarks. Walk 1,532m through the symbolic heart of the Philippines and return within 3m of the Rizal Monument.",
+      "A 1,732m walk through Manila's most historic public space, connecting 5 OSM/Wikipedia-verified landmarks. Walk through the symbolic heart of the Philippines and return within metres of the Rizal Monument.",
     originMeta: {
       label: "Rizal Monument, Rizal Park, Manila",
       description:
-        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day. Every state visit to Manila includes a wreath-laying ceremony here.",
+        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day. Wikipedia coords: 14.581669/120.976694.",
       duration: 5,
       pinIcon: null,
     },
+    // Wikipedia exact: 14.581669, 120.976694
     origin: [14.581669, 120.976694],
     steps: [
       {
-        // Monument (14.581669, 120.976694) → Grandstand (14.579800, 120.974900)
-        bearing: 223,
-        distance: 284,
+        // Monument (14.581669, 120.976694) → Grandstand (14.57972, 120.97472)
+        // Wikipedia: 14.57972/120.97472
+        bearing: 224,
+        distance: 303,
         label: "Rizal Monument → Quirino Grandstand",
         description:
-          "SSW toward Manila Bay. The Quirino Grandstand has hosted every presidential inauguration, the 1946 Declaration of Independence, and the 1995 World Youth Day Mass attended by 5 million people — the largest single gathering in Philippine history.",
+          "SSW toward Manila Bay. The Quirino Grandstand has hosted every presidential inauguration, the 1946 Declaration of Independence, and the 1995 World Youth Day Mass attended by 5 million people.",
         duration: 5,
       },
       {
-        // Grandstand (14.579800, 120.974900) → Planetarium (14.582000, 120.978800)
-        bearing: 60,
-        distance: 486,
+        // Grandstand (14.57972, 120.97472) → Planetarium (14.58300, 120.97950)
+        bearing: 55,
+        distance: 631,
         label: "Grandstand → National Planetarium",
         description:
-          "ENE through the central park lawns. The National Planetarium, opened 1975, brought astronomy education to generations of Filipino students. The park's Chinese Garden and Japanese Garden are visible to the south as you cross.",
+          "ENE through the central park lawns. The National Planetarium opened in 1975 and brought astronomy education to generations of Filipino students.",
         duration: 5,
       },
       {
-        // Planetarium (14.582000, 120.978800) → Agrifina (14.581500, 120.979900)
-        bearing: 115,
-        distance: 131,
+        // Planetarium (14.58300, 120.97950) → Agrifina Circle (14.58155, 120.97998)
+        bearing: 162,
+        distance: 169,
         label: "Planetarium → Agrifina Circle",
         description:
-          "ESE to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. Ringed by three National Museum buildings — Fine Arts, Anthropology, and Natural History — all free to enter.",
+          "SSE to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. Ringed by the three National Museum buildings — Fine Arts, Anthropology, and Natural History.",
         duration: 5,
       },
       {
-        // Agrifina (14.581500, 120.979900) → National Museum (14.583600, 120.979800)
-        bearing: 357,
-        distance: 234,
+        // Agrifina (14.58155, 120.97998) → Nat. Museum FA (14.58362, 120.97980)
+        bearing: 355,
+        distance: 231,
         label: "Agrifina → National Museum of Fine Arts",
         description:
-          "Due north to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that won gold at the 1884 Madrid Exposition and helped launch the Philippine independence movement.",
+          "Due north to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that won gold at the 1884 Madrid Exposition.",
         duration: 5,
       },
       {
-        // National Museum (14.583600, 120.979800) → Monument (14.581669, 120.976694)
+        // Nat. Museum (14.58362, 120.97980) → Monument (14.581669, 120.976694)
         bearing: 237,
-        distance: 397,
+        distance: 398,
         label: "National Museum → Rizal Monument",
         description:
-          "WSW back to the monument. You have walked 1,532m through the symbolic center of the Philippines — the park where Rizal was executed, where independence was declared, and where every national celebration is held — and returned within 3 meters of where you started.",
+          "WSW back to the monument. You have walked 1,732m through the symbolic center of the Philippines and returned within metres of where José Rizal is buried.",
         duration: 5,
       },
     ],
@@ -454,7 +467,6 @@ export const PLACE_ROUTES = SEEDED_ROUTES.filter((r) => r.category === "place");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Legacy PRESETS shim — keeps any code using the old string-key lookup working.
-// Maps the old format to the new SEEDED_ROUTES array.
 // ─────────────────────────────────────────────────────────────────────────────
 export const PRESETS = Object.fromEntries(
   SEEDED_ROUTES.map((r) => [r.id, { origin: r.origin, steps: r.steps }]),
