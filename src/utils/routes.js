@@ -286,78 +286,78 @@ export const SEEDED_ROUTES = [
     title: "UPLB Campus Walk",
     subtitle: "University of the Philippines Los Baños",
     description:
-      "A ~3.7km walk through the UPLB campus hitting 8 verified landmarks. Walk 3,655m and return exactly to where you started — 100% drift, zero net displacement. The campus loop is a perfect dead reckoning demonstration.",
+      "A ~3.5km walk through the UPLB campus hitting 8 verified landmarks. Walk 3,505m and return within 5m of where you started — ~100% drift, near-zero net displacement. A perfect dead reckoning demonstration.",
     originMeta: {
       label: "UPLB Main Gate, College, Los Baños",
       description:
-        "The main entrance to UP Los Baños on Pedro Sandoval Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 3.6km and end up exactly where you started.",
+        "The main entrance to UP Los Baños on Pedro Sandoval Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 3,505m and end up almost exactly where you started.",
       duration: 5,
       pinIcon: null,
     },
     origin: [14.1655, 121.2432],
     steps: [
       {
-        bearing: 187,
-        distance: 415,
+        bearing: 137,
+        distance: 333,
         label: "Main Gate → Baker Hall",
         description:
           "Baker Memorial Hall, built 1927–1938, is the oldest building on campus and a National Cultural Treasure. During WWII it served as a Japanese internment camp for ~2,500 Allied civilians and POWs.",
         duration: 5,
       },
       {
-        bearing: 37,
-        distance: 408,
+        bearing: 43,
+        distance: 364,
         label: "Baker Hall → St. Therese Chapel",
         description:
           "The Diocesan Shrine of St. Therese of the Child Jesus, founded 1927. One of the most recognizable landmarks on campus, set among the century-old acacia trees of the lower campus.",
         duration: 5,
       },
       {
-        bearing: 335,
-        distance: 181,
+        bearing: 336,
+        distance: 183,
         label: "Chapel → Oblation Plaza",
         description:
-          "The UPLB Oblation — a replica of Guillermo Tolentino's iconic sculpture symbolizing the offering of oneself to the nation. The original stands at UP Diliman. This plaza is the symbolic heart of the campus.",
+          "The UPLB Oblation — a replica of Guillermo Tolentino's iconic sculpture symbolizing the offering of oneself to the nation. This plaza is the symbolic heart of the campus.",
         duration: 5,
       },
       {
-        bearing: 304,
-        distance: 362,
+        bearing: 314,
+        distance: 302,
         label: "Oblation → DL Umali Hall",
         description:
           "Dioscoro Ladera Umali Hall houses the UPLB administration. Named after a distinguished plant pathologist and former university president. The upper campus here overlooks Mount Makiling.",
         duration: 5,
       },
       {
-        bearing: 231,
-        distance: 194,
+        bearing: 239,
+        distance: 214,
         label: "Umali Hall → Main Library",
         description:
           "The UPLB Main Library holds over 200,000 volumes and is one of the leading agricultural and natural science research libraries in Southeast Asia.",
         duration: 5,
       },
       {
-        bearing: 168,
-        distance: 466,
+        bearing: 170,
+        distance: 486,
         label: "Library → College of Arts & Sciences",
         description:
           "The College of Arts and Sciences, home to Baker Hall, is the oldest academic unit on campus. It offers programs from biology and chemistry to social sciences and humanities.",
         duration: 5,
       },
       {
-        bearing: 161,
-        distance: 684,
+        bearing: 177,
+        distance: 713,
         label: "CAS → Copeland Gymnasium",
         description:
-          "The Edwin B. Copeland Gymnasium, named after UPLB's first dean. Houses the Department of Human Kinetics. Copeland was an American botanist who established the institution's agricultural research mission in 1909.",
+          "The Edwin B. Copeland Gymnasium, named after UPLB's first dean. Copeland was an American botanist who established the institution's agricultural research mission in 1909.",
         duration: 5,
       },
       {
-        bearing: 1,
-        distance: 945,
+        bearing: 352,
+        distance: 910,
         label: "Copeland Gym → Main Gate",
         description:
-          "Almost due north, back to where you started. You've walked 3,655 meters through one of the Philippines' most beautiful university campuses — and moved zero meters from your starting point.",
+          "Almost due north, back to where you started. You've walked 3,505m through one of the Philippines' most beautiful university campuses — and moved less than 5m from your starting point.",
         duration: 5,
       },
     ],
@@ -370,54 +370,54 @@ export const SEEDED_ROUTES = [
     title: "Rizal Park Loop",
     subtitle: "Luneta, Manila",
     description:
-      "A 2.3km walk through Manila's most historic public space, connecting 5 verified landmarks. Walk 2,307m through the symbolic heart of the Philippines and return exactly to the Rizal Monument.",
+      "A 1.5km walk through Manila's most historic public space, connecting 5 verified landmarks. Walk 1,532m through the symbolic heart of the Philippines and return within 3m of the Rizal Monument.",
     originMeta: {
       label: "Rizal Monument, Rizal Park, Manila",
       description:
-        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day. Every diplomatic visit to Manila includes a wreath-laying here.",
+        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day.",
       duration: 5,
       pinIcon: null,
     },
     origin: [14.581669, 120.976694],
     steps: [
       {
-        bearing: 224,
-        distance: 303,
+        bearing: 223,
+        distance: 284,
         label: "Rizal Monument → Quirino Grandstand",
         description:
           "Southwest toward Manila Bay. The Quirino Grandstand has hosted every presidential inauguration, the 1946 Declaration of Independence, and the 1995 World Youth Day Mass attended by 5 million people.",
         duration: 5,
       },
       {
-        bearing: 38,
-        distance: 586,
+        bearing: 60,
+        distance: 486,
         label: "Grandstand → National Planetarium",
         description:
-          "Northeast through the central park lawns. The National Planetarium, opened 1975, brought astronomy education to generations of Filipino students before closing in 2021 for renovation.",
+          "Northeast through the central park lawns. The National Planetarium, opened 1975, brought astronomy education to generations of Filipino students.",
         duration: 5,
       },
       {
-        bearing: 84,
-        distance: 364,
+        bearing: 115,
+        distance: 131,
         label: "Planetarium → Agrifina Circle",
         description:
-          "East to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. The circle is ringed by three National Museum buildings — Fine Arts, Anthropology, and Natural History.",
+          "East-southeast to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. Ringed by three National Museum buildings.",
         duration: 5,
       },
       {
-        bearing: 355,
-        distance: 296,
+        bearing: 357,
+        distance: 234,
         label: "Agrifina → National Museum of Fine Arts",
         description:
-          "North to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that won gold at the 1884 Madrid Exposition and helped launch the Philippine independence movement.",
+          "Due north to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that helped launch the Philippine independence movement.",
         duration: 5,
       },
       {
-        bearing: 220,
-        distance: 757,
+        bearing: 237,
+        distance: 397,
         label: "National Museum → Rizal Monument",
         description:
-          "Southwest back to the monument. You've walked 2,307m through the symbolic center of the Philippines — the park where Rizal was executed, independence was declared, and every national celebration is held — and moved zero meters from your start.",
+          "Southwest back to the monument. You've walked 1,532m through the symbolic center of the Philippines — and moved less than 3m from your start.",
         duration: 5,
       },
     ],
