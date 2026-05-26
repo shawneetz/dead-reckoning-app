@@ -1,5 +1,11 @@
+// src/components/RouteBrowser.jsx
+//
+// All routes come from the backend API (/api/routes/?limit=200).
+// Historical / Places tabs filter client-side on route.category.
+// Public Routes tab shows everything without a named category.
+// step_count is now returned by the API list endpoint.
+
 import { useState, useEffect } from "react";
-import { HISTORICAL_ROUTES, PLACE_ROUTES } from "../utils/routes";
 import { apiFetch } from "../lib/api";
 
 const TABS = [
@@ -9,11 +15,16 @@ const TABS = [
 ];
 
 function RouteCard({ route, onLoad }) {
-  const isSeeded = !!route.origin; // seeded routes have origin array, API routes have origin_lat/lng
+  const [loading, setLoading] = useState(false);
 
-  const origin = isSeeded ? route.origin : [route.origin_lat, route.origin_lng];
-
-  const steps = isSeeded ? route.steps : null; // API routes need separate step load
+  async function handleClick() {
+    setLoading(true);
+    try {
+      await onLoad(route);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div
@@ -41,7 +52,7 @@ function RouteCard({ route, onLoad }) {
             >
               {route.title}
             </h3>
-            {(route.subtitle || route.description) && (
+            {route.description && (
               <p
                 style={{
                   fontFamily: "EB Garamond, serif",
@@ -51,9 +62,8 @@ function RouteCard({ route, onLoad }) {
                   marginTop: 1,
                 }}
               >
-                {route.subtitle ||
-                  route.description?.slice(0, 72) +
-                    (route.description?.length > 72 ? "…" : "")}
+                {route.description.slice(0, 80) +
+                  (route.description.length > 80 ? "…" : "")}
               </p>
             )}
           </div>
@@ -79,36 +89,6 @@ function RouteCard({ route, onLoad }) {
 
       {/* Body */}
       <div className="px-4 py-3">
-        {/* Show description if it wasn't used as subtitle */}
-        {!route.subtitle &&
-          route.description &&
-          route.description.length > 72 && (
-            <p
-              style={{
-                fontFamily: "EB Garamond, serif",
-                fontSize: 13,
-                color: "var(--mahogany)",
-                lineHeight: 1.5,
-                marginBottom: 10,
-              }}
-            >
-              {route.description}
-            </p>
-          )}
-        {route.subtitle && route.description && (
-          <p
-            style={{
-              fontFamily: "EB Garamond, serif",
-              fontSize: 13,
-              color: "var(--mahogany)",
-              lineHeight: 1.5,
-              marginBottom: 10,
-            }}
-          >
-            {route.description}
-          </p>
-        )}
-
         <div className="flex items-center justify-between">
           <div
             style={{
@@ -117,7 +97,9 @@ function RouteCard({ route, onLoad }) {
               color: "var(--taupe)",
             }}
           >
-            <span>{route.steps?.length ?? route.step_count ?? "?"} steps</span>
+            <span>
+              {route.step_count != null ? route.step_count : "?"} steps
+            </span>
             {route.drift_pct != null && (
               <span
                 style={{
@@ -134,8 +116,9 @@ function RouteCard({ route, onLoad }) {
             )}
           </div>
           <button
-            onClick={() => onLoad(route)}
-            className="btn-stamp px-4 py-1.5"
+            onClick={handleClick}
+            disabled={loading}
+            className="btn-stamp px-4 py-1.5 disabled:opacity-50"
             style={{
               background: "var(--mahogany)",
               border: "2px solid var(--ink)",
@@ -146,7 +129,7 @@ function RouteCard({ route, onLoad }) {
               letterSpacing: "0.18em",
             }}
           >
-            Load Route
+            {loading ? "Loading…" : "Load Route"}
           </button>
         </div>
       </div>
@@ -156,84 +139,67 @@ function RouteCard({ route, onLoad }) {
 
 export default function RouteBrowser({ onLoad, onClose }) {
   const [tab, setTab] = useState("historical");
+  const [search, setSearch] = useState("");
 
-  // Public routes tab state
-  const [publicRoutes, setPublicRoutes] = useState([]);
-  const [pubLoading, setPubLoading] = useState(false);
-  const [pubError, setPubError] = useState(null);
-  const [pubFetched, setPubFetched] = useState(false);
-  const [pubSearch, setPubSearch] = useState("");
+  // All public routes fetched once on mount; tabs filter client-side
+  const [allRoutes, setAllRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch public routes lazily when tab is first selected
   useEffect(() => {
-    if (tab !== "public" || pubFetched) return;
-    setPubLoading(true);
-    apiFetch("/api/routes/?limit=100")
-      .then((data) => {
-        // Filter to user-created public routes only (not the seeded historical/place ones)
-        const SEEDED_IDS = new Set([
-          "ba1a0001-0000-4000-8000-000000000001",
-          "ba1a0001-0000-4000-8000-000000000002",
-          "ba1a0001-0000-4000-8000-000000000003",
-          "ba1a0001-0000-4000-8000-000000000004",
-          "ba1a0001-0000-4000-8000-000000000005",
-          "ba1a0001-0000-4000-8000-000000000006",
-        ]);
-        setPublicRoutes(data.filter((r) => !SEEDED_IDS.has(r.id)));
-        setPubFetched(true);
-      })
-      .catch((e) => setPubError(e.message))
-      .finally(() => setPubLoading(false));
-  }, [tab, pubFetched]);
+    apiFetch("/api/routes/?limit=200")
+      .then(setAllRoutes)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-  // Handle loading either a seeded route or an API route
+  // Fetch the route's steps, normalise shape, call parent's onLoad
   async function handleLoad(route) {
-    const isSeeded = Array.isArray(route.origin);
-
-    if (isSeeded) {
-      // Seeded route — all data already present, pass straight through
-      onLoad(route);
-      onClose();
-      return;
-    }
-
-    // API route — need to fetch steps separately
-    try {
-      const steps = await apiFetch(`/api/routes/${route.id}/steps`);
-      const normalized = {
-        origin: [route.origin_lat, route.origin_lng],
-        originMeta: {
-          label: route.title,
-          description: route.description || "",
-          duration: 0,
-          pinIcon: null,
-        },
-        steps: steps.map((s) => ({
-          bearing: s.bearing_deg,
-          distance: s.distance_m,
-          label: s.label || "",
-          description: s.description || "",
-          pinColor: s.pin_color || "#378ADD",
-        })),
-        title: route.title,
-        is_public: route.is_public,
-        category: route.category,
-      };
-      onLoad(normalized);
-      onClose();
-    } catch (e) {
-      alert("Failed to load route: " + e.message);
-    }
+    const steps = await apiFetch(`/api/routes/${route.id}/steps`);
+    const normalized = {
+      origin: [route.origin_lat, route.origin_lng],
+      originMeta: {
+        label: route.origin_label || "",
+        description: route.origin_description || "",
+        duration: route.origin_duration || 0,
+        pinIcon: null,
+      },
+      steps: steps.map((s) => ({
+        bearing: s.bearing_deg,
+        distance: s.distance_m,
+        label: s.label || "",
+        description: s.description || "",
+        duration: s.duration_sec || 0,
+        imageUrl: s.image_url || "",
+        pinColor: s.pin_color || "#378ADD",
+        pinIcon: null,
+      })),
+      title: route.title,
+      is_public: route.is_public,
+      category: route.category,
+    };
+    onLoad(normalized);
+    onClose();
   }
 
-  const seededRoutes = tab === "historical" ? HISTORICAL_ROUTES : PLACE_ROUTES;
+  // Filter by active tab then by search query
+  const tabRoutes = allRoutes.filter((r) => {
+    if (tab === "historical") return r.category === "historical";
+    if (tab === "place") return r.category === "place";
+    // "public" tab = community routes (no category or unrecognised category)
+    return (
+      !r.category || (r.category !== "historical" && r.category !== "place")
+    );
+  });
 
-  const filteredPublic = publicRoutes.filter(
-    (r) =>
-      !pubSearch ||
-      r.title?.toLowerCase().includes(pubSearch.toLowerCase()) ||
-      r.description?.toLowerCase().includes(pubSearch.toLowerCase()),
-  );
+  const filtered = tabRoutes.filter((r) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      r.title?.toLowerCase().includes(q) ||
+      r.description?.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <>
@@ -328,111 +294,88 @@ export default function RouteBrowser({ onLoad, onClose }) {
           ))}
         </div>
 
-        {/* Search bar — only on public tab */}
-        {tab === "public" && (
-          <div
-            className="px-4 py-3 flex-shrink-0"
+        {/* Search */}
+        <div
+          className="px-4 py-3 flex-shrink-0"
+          style={{
+            borderBottom: "1px solid var(--coolstone)",
+            background: "var(--cream)",
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Search routes…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             style={{
-              borderBottom: "1px solid var(--coolstone)",
-              background: "var(--cream)",
+              width: "100%",
+              fontFamily: "EB Garamond, serif",
+              fontSize: 14,
+              background: "var(--parchment)",
+              border: "1.5px solid var(--taupe)",
+              color: "var(--ink)",
+              padding: "6px 10px",
             }}
-          >
-            <input
-              type="text"
-              placeholder="Search public routes…"
-              value={pubSearch}
-              onChange={(e) => setPubSearch(e.target.value)}
-              style={{
-                width: "100%",
-                fontFamily: "EB Garamond, serif",
-                fontSize: 14,
-                background: "var(--parchment)",
-                border: "1.5px solid var(--taupe)",
-                color: "var(--ink)",
-                padding: "6px 10px",
-              }}
-            />
-          </div>
-        )}
-
-        {/* Content — scrollable */}
-        <div className="overflow-y-auto flex-1 p-4 flex flex-col gap-3">
-          {/* Historical + Places tabs — seeded routes */}
-          {(tab === "historical" || tab === "place") &&
-            seededRoutes.map((route) => (
-              <RouteCard key={route.id} route={route} onLoad={handleLoad} />
-            ))}
-
-          {/* Public Routes tab — live API */}
-          {tab === "public" && (
-            <>
-              {pubLoading && (
-                <p
-                  style={{
-                    fontFamily: "EB Garamond, serif",
-                    fontSize: 14,
-                    color: "var(--taupe)",
-                    fontStyle: "italic",
-                  }}
-                  className="py-6 text-center"
-                >
-                  Loading public routes…
-                </p>
-              )}
-
-              {pubError && (
-                <p
-                  style={{
-                    fontFamily: "EB Garamond, serif",
-                    fontSize: 14,
-                    color: "#7A1A1A",
-                  }}
-                  className="py-4"
-                >
-                  {pubError}
-                </p>
-              )}
-
-              {!pubLoading && !pubError && filteredPublic.length === 0 && (
-                <div className="py-10 text-center flex flex-col items-center gap-4">
-                  <p
-                    style={{
-                      fontFamily: "EB Garamond, serif",
-                      fontSize: 15,
-                      color: "var(--taupe)",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    {pubSearch
-                      ? "No routes match your search."
-                      : "No public routes yet. Be the first to publish one."}
-                  </p>
-                  {!pubSearch && (
-                    <p
-                      style={{
-                        fontFamily: "EB Garamond, serif",
-                        fontSize: 13,
-                        color: "var(--taupe)",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      Create a route in the navigator, save it, then toggle it
-                      Public.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {!pubLoading &&
-                filteredPublic.map((route) => (
-                  <RouteCard key={route.id} route={route} onLoad={handleLoad} />
-                ))}
-            </>
-          )}
+          />
         </div>
 
-        {/* Footer — public tab only, shows count */}
-        {tab === "public" && !pubLoading && pubFetched && (
+        {/* Route list */}
+        <div className="overflow-y-auto flex-1 p-4 flex flex-col gap-3">
+          {loading && (
+            <p
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 14,
+                color: "var(--taupe)",
+                fontStyle: "italic",
+              }}
+              className="py-6 text-center"
+            >
+              Loading routes…
+            </p>
+          )}
+
+          {!loading && error && (
+            <p
+              style={{
+                fontFamily: "EB Garamond, serif",
+                fontSize: 14,
+                color: "#7A1A1A",
+              }}
+              className="py-4"
+            >
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
+            <div className="py-10 text-center flex flex-col items-center gap-4">
+              <p
+                style={{
+                  fontFamily: "EB Garamond, serif",
+                  fontSize: 15,
+                  color: "var(--taupe)",
+                  fontStyle: "italic",
+                }}
+              >
+                {search
+                  ? "No routes match your search."
+                  : tab === "public"
+                    ? "No public routes yet. Be the first to publish one."
+                    : "No routes in this category yet."}
+              </p>
+            </div>
+          )}
+
+          {!loading &&
+            !error &&
+            filtered.map((route) => (
+              <RouteCard key={route.id} route={route} onLoad={handleLoad} />
+            ))}
+        </div>
+
+        {/* Footer */}
+        {!loading && (
           <div
             className="px-5 py-2 flex-shrink-0"
             style={{
@@ -448,9 +391,8 @@ export default function RouteBrowser({ onLoad, onClose }) {
                 fontStyle: "italic",
               }}
             >
-              {filteredPublic.length} public route
-              {filteredPublic.length !== 1 ? "s" : ""}
-              {pubSearch ? " matching your search" : " from the community"}
+              {filtered.length} route{filtered.length !== 1 ? "s" : ""}
+              {search ? " matching your search" : ""}
             </p>
           </div>
         )}
