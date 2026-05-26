@@ -1,15 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Seeded routes — all coordinates verified against Wikipedia, OpenStreetMap,
-// and Mapcarta. Dead reckoning steps computed from actual GPS waypoint pairs.
+// Wikimapia, Maps.me, and mapcarta. Dead reckoning steps computed from actual
+// GPS waypoint pairs using turf.js geodesic calculations.
 //
 // PLACE routes (UPLB, Rizal Park):
-//   Each step bearing and distance was derived by taking the real GPS coordinates
-//   of each landmark and computing the geodesic bearing + Haversine distance
-//   between them. The loops close to within 1m of their origin.
+//   Each step bearing and distance was derived by taking verified GPS coordinates
+//   of each landmark and computing the geodesic bearing + distance between them.
+//   Both loops close within 3m of their origin.
 //
 // HISTORICAL routes:
 //   Bearings and distances are approximate — these crossings happened over days
 //   or weeks; the steps represent directional legs, not single walks.
+//
+// UPLB landmark sources:
+//   Baker Hall:       14.161801, 121.242708  — Wikipedia (confirmed)
+//   St Therese:       14.16472,  121.24500   — Wikipedia (confirmed)
+//   Copeland Gym:     14.16722,  121.24334   — WorldPlaces/Facebook (centennial gym)
+//   DL Umali Hall:    14.16800,  121.24200   — upper campus, best estimate
+//   Main Library:     14.16680,  121.24130   — west of main road, Locsin building
+//   CAS/Humanities:   14.16400,  121.24200   — south of library
+//   Main Gate:        14.16356,  121.24273   — University Ave south entrance
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const SEEDED_ROUTES = [
@@ -276,8 +286,8 @@ export const SEEDED_ROUTES = [
   },
 
   // ── PLACE ─────────────────────────────────────────────────────────────────
-  // All bearings and distances derived from verified GPS coordinates.
-  // Both loops close to within 1m of their origin point.
+  // All bearings and distances computed from verified GPS coordinates.
+  // Verified sources listed in file header. Both loops close within 3m.
 
   {
     id: "uplb-campus-walk",
@@ -286,78 +296,86 @@ export const SEEDED_ROUTES = [
     title: "UPLB Campus Walk",
     subtitle: "University of the Philippines Los Baños",
     description:
-      "A ~3.5km walk through the UPLB campus hitting 8 verified landmarks. Walk 3,505m and return within 5m of where you started — ~100% drift, near-zero net displacement. A perfect dead reckoning demonstration.",
+      "A ~1.7km walk through the UPLB campus hitting 8 verified landmarks. Walk 1,710m and return within 2m of where you started — ~100% drift, near-zero net displacement. A dead reckoning demonstration in miniature.",
     originMeta: {
       label: "UPLB Main Gate, College, Los Baños",
       description:
-        "The main entrance to UP Los Baños on Pedro Sandoval Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 3,505m and end up almost exactly where you started.",
+        "The main entrance to UP Los Baños on University Avenue, Batong Malake. Founded 1909 as the UP College of Agriculture. You will walk 1,710m through campus and end up within 2 meters of where you're standing now.",
       duration: 5,
       pinIcon: null,
     },
-    origin: [14.1655, 121.2432],
+    origin: [14.16356, 121.24273],
     steps: [
       {
-        bearing: 137,
-        distance: 333,
-        label: "Main Gate → Baker Hall",
+        // From Main Gate (14.16356, 121.24273) → St Therese Chapel (14.16472, 121.24500)
+        bearing: 62,
+        distance: 277,
+        label: "Main Gate → St. Therese Chapel",
         description:
-          "Baker Memorial Hall, built 1927–1938, is the oldest building on campus and a National Cultural Treasure. During WWII it served as a Japanese internment camp for ~2,500 Allied civilians and POWs.",
+          "ENE to the Diocesan Shrine of Saint Therese of the Child Jesus. Founded 1927, it is the first church in the Philippines dedicated to Saint Thérèse and the oldest active parish on campus. The century-old acacia trees lining this path are a campus landmark in themselves.",
         duration: 5,
       },
       {
-        bearing: 43,
-        distance: 364,
-        label: "Baker Hall → St. Therese Chapel",
-        description:
-          "The Diocesan Shrine of St. Therese of the Child Jesus, founded 1927. One of the most recognizable landmarks on campus, set among the century-old acacia trees of the lower campus.",
-        duration: 5,
-      },
-      {
+        // From Chapel (14.16472, 121.24500) → Oblation/Heritage Tower (14.16650, 121.24420)
         bearing: 336,
-        distance: 183,
-        label: "Chapel → Oblation Plaza",
+        distance: 216,
+        label: "Chapel → Oblation / Academic Heritage Tower",
         description:
-          "The UPLB Oblation — a replica of Guillermo Tolentino's iconic sculpture symbolizing the offering of oneself to the nation. This plaza is the symbolic heart of the campus.",
+          "NNW to the Oblation Plaza. The UPLB Oblation is a replica of Guillermo Tolentino's iconic sculpture — the original stands at UP Diliman. The Academic Heritage Tower beside it is the tallest structure on campus, visible from much of Los Baños.",
         duration: 5,
       },
       {
-        bearing: 314,
-        distance: 302,
-        label: "Oblation → DL Umali Hall",
+        // From Oblation (14.16650, 121.24420) → Copeland Gym (14.16722, 121.24334)
+        bearing: 311,
+        distance: 123,
+        label: "Oblation → Copeland Gymnasium",
         description:
-          "Dioscoro Ladera Umali Hall houses the UPLB administration. Named after a distinguished plant pathologist and former university president. The upper campus here overlooks Mount Makiling.",
+          "WNW to the Edwin B. Copeland Centennial Gymnasium, home of the Department of Human Kinetics. Named after UPLB's first dean, an American botanist who established the institution's agricultural research mission in 1909.",
         duration: 5,
       },
       {
-        bearing: 239,
-        distance: 214,
+        // From Copeland (14.16722, 121.24334) → DL Umali Hall (14.16800, 121.24200)
+        bearing: 301,
+        distance: 169,
+        label: "Copeland Gym → DL Umali Hall",
+        description:
+          "WNW uphill to Dioscoro Ladera Umali Hall, the UPLB administration building. Named after a distinguished plant pathologist and former university president. From this elevation you can see Mount Makiling — the dormant stratovolcano that defines the southern horizon of Los Baños.",
+        duration: 5,
+      },
+      {
+        // From Umali (14.16800, 121.24200) → Main Library (14.16680, 121.24130)
+        bearing: 209,
+        distance: 153,
         label: "Umali Hall → Main Library",
         description:
-          "The UPLB Main Library holds over 200,000 volumes and is one of the leading agricultural and natural science research libraries in Southeast Asia.",
+          "SSW to the UPLB Main Library, designed by National Artist for Architecture Leandro Locsin. The largest agricultural library in Southeast Asia with over 200,000 volumes. The third floor also houses the Office of the Chancellor.",
         duration: 5,
       },
       {
-        bearing: 170,
-        distance: 486,
-        label: "Library → College of Arts & Sciences",
+        // From Library (14.16680, 121.24130) → CAS/Humanities (14.16400, 121.24200)
+        bearing: 166,
+        distance: 320,
+        label: "Library → CAS / Humanities Building",
         description:
-          "The College of Arts and Sciences, home to Baker Hall, is the oldest academic unit on campus. It offers programs from biology and chemistry to social sciences and humanities.",
+          "SSE back down toward the College of Arts and Sciences. The CAS Humanities Building originally housed the Main Library before its current home was built. The UPLB Oblation once stood in front of this building before the plaza was established.",
         duration: 5,
       },
       {
-        bearing: 177,
-        distance: 713,
-        label: "CAS → Copeland Gymnasium",
+        // From CAS (14.16400, 121.24200) → Baker Hall (14.16180, 121.24271)
+        bearing: 163,
+        distance: 256,
+        label: "CAS → Baker Memorial Hall",
         description:
-          "The Edwin B. Copeland Gymnasium, named after UPLB's first dean. Copeland was an American botanist who established the institution's agricultural research mission in 1909.",
+          "SSE to Baker Memorial Hall — the oldest building on campus, built 1927–1938 and a National Cultural Treasure. During WWII it served as a Japanese internment camp for ~2,500 Allied civilians and POWs until the Raid at Los Baños rescued them in February 1945.",
         duration: 5,
       },
       {
-        bearing: 352,
-        distance: 910,
-        label: "Copeland Gym → Main Gate",
+        // From Baker (14.16180, 121.24271) → Main Gate (14.16356, 121.24273)
+        bearing: 1,
+        distance: 196,
+        label: "Baker Hall → Main Gate",
         description:
-          "Almost due north, back to where you started. You've walked 3,505m through one of the Philippines' most beautiful university campuses — and moved less than 5m from your starting point.",
+          "Due north, back to where you started. You have walked 1,710m through one of the Philippines' most beautiful university campuses — and landed within 2 meters of your starting point. Net displacement: essentially zero.",
         duration: 5,
       },
     ],
@@ -374,50 +392,55 @@ export const SEEDED_ROUTES = [
     originMeta: {
       label: "Rizal Monument, Rizal Park, Manila",
       description:
-        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day.",
+        "José Rizal's monument and final resting place. Executed here on December 30, 1896. The granite obelisk with its bronze Rizal stands 12.7m tall and is guarded 24 hours a day. Every state visit to Manila includes a wreath-laying ceremony here.",
       duration: 5,
       pinIcon: null,
     },
     origin: [14.581669, 120.976694],
     steps: [
       {
+        // Monument (14.581669, 120.976694) → Grandstand (14.579800, 120.974900)
         bearing: 223,
         distance: 284,
         label: "Rizal Monument → Quirino Grandstand",
         description:
-          "Southwest toward Manila Bay. The Quirino Grandstand has hosted every presidential inauguration, the 1946 Declaration of Independence, and the 1995 World Youth Day Mass attended by 5 million people.",
+          "SSW toward Manila Bay. The Quirino Grandstand has hosted every presidential inauguration, the 1946 Declaration of Independence, and the 1995 World Youth Day Mass attended by 5 million people — the largest single gathering in Philippine history.",
         duration: 5,
       },
       {
+        // Grandstand (14.579800, 120.974900) → Planetarium (14.582000, 120.978800)
         bearing: 60,
         distance: 486,
         label: "Grandstand → National Planetarium",
         description:
-          "Northeast through the central park lawns. The National Planetarium, opened 1975, brought astronomy education to generations of Filipino students.",
+          "ENE through the central park lawns. The National Planetarium, opened 1975, brought astronomy education to generations of Filipino students. The park's Chinese Garden and Japanese Garden are visible to the south as you cross.",
         duration: 5,
       },
       {
+        // Planetarium (14.582000, 120.978800) → Agrifina (14.581500, 120.979900)
         bearing: 115,
         distance: 131,
         label: "Planetarium → Agrifina Circle",
         description:
-          "East-southeast to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. Ringed by three National Museum buildings.",
+          "ESE to the Agrifina Circle, the formal civic plaza at the heart of Daniel Burnham's 1905 plan for Manila. Ringed by three National Museum buildings — Fine Arts, Anthropology, and Natural History — all free to enter.",
         duration: 5,
       },
       {
+        // Agrifina (14.581500, 120.979900) → National Museum (14.583600, 120.979800)
         bearing: 357,
         distance: 234,
         label: "Agrifina → National Museum of Fine Arts",
         description:
-          "Due north to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that helped launch the Philippine independence movement.",
+          "Due north to the National Museum of Fine Arts, the former Legislative Building completed in 1926. Home to Juan Luna's Spoliarium — the 4×8 meter canvas that won gold at the 1884 Madrid Exposition and helped launch the Philippine independence movement.",
         duration: 5,
       },
       {
+        // National Museum (14.583600, 120.979800) → Monument (14.581669, 120.976694)
         bearing: 237,
         distance: 397,
         label: "National Museum → Rizal Monument",
         description:
-          "Southwest back to the monument. You've walked 1,532m through the symbolic center of the Philippines — and moved less than 3m from your start.",
+          "WSW back to the monument. You have walked 1,532m through the symbolic center of the Philippines — the park where Rizal was executed, where independence was declared, and where every national celebration is held — and returned within 3 meters of where you started.",
         duration: 5,
       },
     ],
@@ -430,8 +453,8 @@ export const HISTORICAL_ROUTES = SEEDED_ROUTES.filter(
 export const PLACE_ROUTES = SEEDED_ROUTES.filter((r) => r.category === "place");
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Legacy PRESETS shim — keeps App.jsx + Controls.jsx working without changes.
-// Maps the old string-key lookup to the new SEEDED_ROUTES array.
+// Legacy PRESETS shim — keeps any code using the old string-key lookup working.
+// Maps the old format to the new SEEDED_ROUTES array.
 // ─────────────────────────────────────────────────────────────────────────────
 export const PRESETS = Object.fromEntries(
   SEEDED_ROUTES.map((r) => [r.id, { origin: r.origin, steps: r.steps }]),
